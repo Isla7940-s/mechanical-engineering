@@ -1,0 +1,854 @@
+<title>球阀测绘手册</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;900&display=swap">
+<style>
+/* 版式：像一张铺在绘图桌上的图纸，标题栏做页眉，细线分区，蓝色取自实物阀体漆色，红色只给中心线 */
+:root{
+  --paper:#edf1f0; --sheet:#fbfcfb; --ink:#1b2527; --ink2:#566469; --line:#c7d1d1;
+  --accent:#2a7bbf; --accent-ink:#ffffff; --ctr:#c2412d; --dim:#22629a; --hl:#e3eef8; --stage:#dde5e5;
+  --pencil:#3b4245;
+  --f-disp:"Noto Serif SC","Songti SC","SimSun",serif;
+  --f-body:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono","SFMono-Regular",Consolas,"Noto Sans SC",monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#101618; --sheet:#172023; --ink:#dde6e7; --ink2:#93a3a8; --line:#2b393d;
+  --accent:#5aa9e8; --accent-ink:#0b1923; --ctr:#ff8a73; --dim:#80c3f7; --hl:#1b2d3a; --stage:#0d1214; --pencil:#c9d0d2; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#101618; --sheet:#172023; --ink:#dde6e7; --ink2:#93a3a8; --line:#2b393d;
+  --accent:#5aa9e8; --accent-ink:#0b1923; --ctr:#ff8a73; --dim:#80c3f7; --hl:#1b2d3a; --stage:#0d1214; --pencil:#c9d0d2; color-scheme:dark}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.7}
+.wrap{max-width:1180px;margin:0 auto;padding-block:28px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:44px}
+h1,h2,h3{font-family:var(--f-disp);text-wrap:balance;margin:0;line-height:1.3}
+h2{font-size:1.55rem;font-weight:900}
+h3{font-size:1.08rem;font-weight:600}
+p{margin:0}
+.mono{font-family:var(--f-mono)}
+.eyebrow{font-size:.75rem;letter-spacing:.12em;color:var(--ink2);font-weight:500}
+section{display:grid;gap:18px;min-width:0}
+.sec-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;border-bottom:1.5px solid var(--ink);padding-bottom:8px}
+.sec-head .eyebrow{font-family:var(--f-mono)}
+.lede{color:var(--ink2);max-width:68ch}
+
+/* 标题栏式页眉 */
+.tb{border:2px solid var(--ink);background:var(--sheet);display:grid;grid-template-columns:2.1fr 1fr 1fr;}
+.tb>div{border:0 solid var(--ink);padding:12px 14px;min-width:0}
+.tb .name{grid-row:span 2;border-right-width:1px;display:grid;align-content:space-between;gap:16px}
+.tb .name h1{font-size:clamp(1.9rem,4.6vw,3rem);font-weight:900;letter-spacing:.02em}
+.tb .cell{border-bottom-width:1px;border-right-width:1px}
+.tb .cell:nth-child(3),.tb .cell:nth-child(5){border-right-width:0}
+.tb .cell:nth-child(4),.tb .cell:nth-child(5){border-bottom-width:0}
+.tb .k{font-size:.72rem;color:var(--ink2);letter-spacing:.1em}
+.tb .v{font-family:var(--f-mono);font-size:.95rem;font-weight:600}
+.tb .note{font-size:.85rem;color:var(--ink2)}
+@media (max-width:720px){.tb{grid-template-columns:1fr 1fr}.tb .name{grid-column:span 2;grid-row:auto;border-right-width:0;border-bottom-width:1px}
+  .tb .cell:nth-child(2),.tb .cell:nth-child(4){border-right-width:1px}.tb .cell:nth-child(3),.tb .cell:nth-child(5){border-right-width:0}
+  .tb .cell:nth-child(4),.tb .cell:nth-child(5){border-bottom-width:0}}
+
+.callout{border-left:3px solid var(--accent);background:var(--hl);padding:12px 16px;max-width:78ch}
+.callout b{color:var(--ink)}
+
+/* 3D */
+.viewer{display:grid;grid-template-columns:minmax(0,1fr) 320px;border:1px solid var(--line);background:var(--sheet)}
+#stage{position:relative;min-height:440px;background:var(--stage);touch-action:none}
+#stage canvas{display:block;width:100%;height:100%;position:absolute;inset:0}
+#tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--paper);font-size:.8rem;padding:2px 8px;border-radius:2px;transform:translate(10px,-28px);white-space:nowrap}
+.stage-msg{position:absolute;inset:0;display:grid;place-items:center;color:var(--ink2);padding:24px;text-align:center}
+.ctrls{position:absolute;left:10px;right:10px;bottom:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.panel{border-left:1px solid var(--line);display:grid;grid-template-rows:auto auto 1fr;min-width:0}
+.panel>div{padding:14px 16px;border-bottom:1px solid var(--line);min-width:0}
+.panel>div:last-child{border-bottom:0}
+@media (max-width:860px){.viewer{grid-template-columns:1fr}.panel{border-left:0;border-top:1px solid var(--line)}#stage{min-height:360px}}
+.btn{font:inherit;font-size:.85rem;border:1px solid var(--ink);background:var(--sheet);color:var(--ink);padding:5px 12px;border-radius:2px;cursor:pointer;line-height:1.4}
+.btn:hover{background:var(--hl)}
+.btn[aria-pressed="true"],.btn.on{background:var(--ink);color:var(--paper)}
+.btn:focus-visible,.tab:focus-visible,input:focus-visible,.step:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.range{display:flex;align-items:center;gap:8px;background:var(--sheet);border:1px solid var(--line);padding:3px 10px;font-size:.85rem}
+.range input{width:120px;accent-color:var(--accent)}
+.steps{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:2px;counter-reset:s}
+.step{display:grid;grid-template-columns:26px 1fr;gap:6px;align-items:start;width:100%;text-align:left;font:inherit;font-size:.88rem;background:none;border:0;border-left:2px solid transparent;color:var(--ink);padding:4px 6px;cursor:pointer}
+.step .n{font-family:var(--f-mono);color:var(--ink2);font-size:.8rem;padding-top:1px}
+.step.done{color:var(--ink2)}
+.step.done .t{text-decoration:line-through;text-decoration-color:var(--line)}
+.step.cur{border-left-color:var(--accent);background:var(--hl)}
+.stepdesc{font-size:.85rem;color:var(--ink2);margin-top:8px;min-height:3.4em}
+.partinfo .pn{font-family:var(--f-disp);font-size:1.25rem;font-weight:900}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-size:.85rem;margin-top:6px}
+.kv dt{color:var(--ink2)} .kv dd{margin:0}
+.pill{display:inline-block;font-size:.72rem;border:1px solid currentColor;padding:0 6px;border-radius:2px;margin-left:6px;vertical-align:2px}
+.pill.std{color:var(--ink2)} .pill.drw{color:var(--accent)}
+
+/* 草图区 */
+.tabs{display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--ink);width:max-content;max-width:100%}
+.tab{font:inherit;font-size:.9rem;background:var(--sheet);color:var(--ink);border:0;border-right:1px solid var(--ink);padding:6px 14px;cursor:pointer}
+.tab:last-child{border-right:0}
+.tab[aria-selected="true"]{background:var(--ink);color:var(--paper)}
+.tab .no{font-family:var(--f-mono);font-size:.75rem;opacity:.7;margin-right:4px}
+.dwg-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sheet{display:grid;grid-template-columns:minmax(0,1fr) 340px;border:1px solid var(--line);background:var(--sheet)}
+@media (max-width:960px){.sheet{grid-template-columns:1fr}}
+.dwgbox{min-width:0;display:grid;grid-template-rows:1fr auto;border-right:1px solid var(--line)}
+@media (max-width:960px){.dwgbox{border-right:0;border-bottom:1px solid var(--line)}}
+.scroll{overflow-x:auto;padding:10px}
+.dwg{display:block;width:100%;height:auto;margin:0 auto}
+.dwgwrap.sk{--ink:var(--pencil);background-image:linear-gradient(var(--line) .5px,transparent .5px),linear-gradient(90deg,var(--line) .5px,transparent .5px);background-size:16px 16px}
+.dwgwrap.sk .dwg g.art{filter:url(#rough)}
+.dwg .v{fill:none;stroke:var(--ink);stroke-width:.55;stroke-linecap:round;stroke-linejoin:round}
+.dwg .t{fill:none;stroke:var(--ink);stroke-width:.22}
+.dwg .h{fill:none;stroke:var(--ink);stroke-width:.25;stroke-dasharray:2.4 1.1}
+.dwg .c{fill:none;stroke:var(--ctr);stroke-width:.22;stroke-dasharray:8 1.2 1.2 1.2}
+.dwg .d{fill:none;stroke:var(--dim);stroke-width:.2}
+.dwg .ct{fill:none;stroke:var(--ink);stroke-width:.8}
+.dwg .s1{fill:url(#h1)} .dwg .s2{fill:url(#h2)} .dwg .s3{fill:url(#h3)} .dwg .sn{fill:url(#hn)}
+.dwg .blk{fill:var(--ink);stroke:none}
+.dwg .dt{fill:var(--dim);font-family:var(--f-mono);font-size:3.1px}
+.dwg .vl{fill:var(--ink2);font-family:var(--f-body);font-size:3.6px}
+.dwg .bn{fill:var(--ink);font-family:var(--f-mono);font-size:4.6px;font-weight:600}
+.dwg .dot{fill:var(--ink)}
+.arw{fill:var(--dim)} .hl{stroke:var(--ink);stroke-width:.2}
+.titleblk{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-top:1px solid var(--ink);font-size:.82rem}
+.titleblk>div{padding:6px 10px;border-right:1px solid var(--line);min-width:0}
+.titleblk>div:last-child{border-right:0}
+.titleblk .k{display:block;font-size:.7rem;color:var(--ink2);letter-spacing:.08em}
+@media (max-width:560px){.titleblk{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.side{padding:16px;display:grid;gap:16px;align-content:start;min-width:0}
+.side h3{font-size:.95rem;font-family:var(--f-body);font-weight:700;display:flex;justify-content:space-between;gap:8px}
+.side ol,.side ul{margin:6px 0 0;padding-left:1.2em;font-size:.88rem;display:grid;gap:4px}
+.checks{list-style:none;padding-left:0!important}
+.checks label{display:flex;gap:8px;align-items:flex-start;cursor:pointer}
+.checks input{margin-top:5px;accent-color:var(--accent)}
+.count{font-family:var(--f-mono);font-size:.78rem;color:var(--ink2);font-weight:400}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.8rem;color:var(--ink2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend svg{width:34px;height:8px}
+
+/* 表格 */
+.tablewrap{overflow-x:auto;border:1px solid var(--line);background:var(--sheet)}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{border-bottom:1px solid var(--line);padding:7px 12px;text-align:left;vertical-align:top}
+th{font-weight:500;color:var(--ink2);font-size:.78rem;letter-spacing:.06em;background:var(--paper)}
+td.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:0}
+
+/* 流程 */
+.flow{list-style:none;margin:0;padding:0;display:grid;gap:0;border-left:1.5px solid var(--ink);margin-left:12px}
+.flow li{position:relative;padding:0 0 22px 26px;display:grid;gap:4px}
+.flow li::before{content:attr(data-n);position:absolute;left:-13px;top:2px;width:24px;height:24px;border-radius:50%;background:var(--sheet);border:1.5px solid var(--ink);font-family:var(--f-mono);font-size:.75rem;display:grid;place-items:center;font-weight:600}
+.flow .when{font-family:var(--f-mono);font-size:.75rem;color:var(--accent);letter-spacing:.06em}
+.flow p{color:var(--ink2);max-width:72ch;font-size:.92rem}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+@media (max-width:760px){.grid2{grid-template-columns:1fr}}
+.card{border:1px solid var(--line);background:var(--sheet);padding:16px 18px;display:grid;gap:8px;align-content:start;min-width:0}
+.card ul,.card ol{margin:0;padding-left:1.2em;display:grid;gap:4px;font-size:.9rem}
+.qa{display:grid;gap:10px}
+.qa details{border:1px solid var(--line);background:var(--sheet);padding:10px 16px}
+.qa summary{cursor:pointer;font-weight:500}
+.qa details p{margin-top:8px;color:var(--ink2);font-size:.92rem;max-width:76ch}
+footer{color:var(--ink2);font-size:.82rem;border-top:1px solid var(--line);padding-top:14px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="2.8" markerHeight="2.8" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,1.5 L10,5 L0,8.5 z" class="arw"/></marker>
+    <pattern id="h1" patternUnits="userSpaceOnUse" width="2.6" height="2.6" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="2.6" class="hl"/></pattern>
+    <pattern id="h2" patternUnits="userSpaceOnUse" width="2.6" height="2.6" patternTransform="rotate(-45)"><line x1="0" y1="0" x2="0" y2="2.6" class="hl"/></pattern>
+    <pattern id="h3" patternUnits="userSpaceOnUse" width="1.6" height="1.6" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="1.6" class="hl"/></pattern>
+    <pattern id="hn" patternUnits="userSpaceOnUse" width="1.8" height="1.8" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="1.8" class="hl"/><line x1="0" y1="0" x2="1.8" y2="0" class="hl"/></pattern>
+    <filter id="rough" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="2" seed="7" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="1.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+  </defs>
+</svg>
+
+<div class="wrap">
+
+<header class="tb">
+  <div class="name">
+    <span class="eyebrow">机械制图课程设计 · 零部件测绘</span>
+    <h1>球阀（1）测绘手册</h1>
+    <p class="note">按你视频里那台蓝色球阀整理：拆装顺序、每个零件的草图表达方案、装配图和交作业的全流程。</p>
+  </div>
+  <div class="cell"><div class="k">零件</div><div class="v">11 种 · 非标件 7 种</div></div>
+  <div class="cell"><div class="k">装配图</div><div class="v">A2 × 1 张</div></div>
+  <div class="cell"><div class="k">零件图</div><div class="v">≥ 3 张 · A2～A4</div></div>
+  <div class="cell"><div class="k">图中尺寸</div><div class="v">参考值，以实测为准</div></div>
+</header>
+
+<div class="callout">
+  <p><b>先纠正一个理解：</b>草图不是“每个角度画一张”，而是<b>一个零件一张纸</b>。这张纸上放下把这个零件表达清楚所需的全部视图（主视图、左视图、俯视图、剖视图、断面图……）。下面每个零件我都按这个规矩排好了视图，可以直接照着布图。</p>
+</div>
+
+<section id="s3d">
+  <div class="sec-head"><h2>三维拆装</h2><span class="eyebrow">拖动旋转 · 滚轮缩放 · 点零件看信息</span></div>
+  <p class="lede">按拆卸顺序一步步点，看每一步拿下来的是哪个零件。打开“半剖”可以看到内部结构：阀芯、两个密封圈、填料和阀杆的扁榫都在里面。</p>
+  <div class="viewer">
+    <div id="stage">
+      <div id="tip" hidden></div>
+      <div class="ctrls">
+        <label class="range">爆炸 <input id="explode" type="range" min="0" max="100" value="0"></label>
+        <button class="btn" id="btnClip" aria-pressed="false">半剖</button>
+        <button class="btn" id="btnSpin" aria-pressed="false">自动旋转</button>
+        <button class="btn" id="btnReset">装回去</button>
+      </div>
+    </div>
+    <div class="panel">
+      <div>
+        <h3>拆卸顺序</h3>
+        <ol class="steps" id="steps"></ol>
+        <p class="stepdesc" id="stepdesc">点第 1 步开始。装配就是倒过来做一遍。</p>
+      </div>
+      <div class="partinfo" id="partinfo">
+        <div class="eyebrow">当前零件</div>
+        <p class="pn">点模型上的零件</p>
+      </div>
+      <div></div>
+    </div>
+  </div>
+</section>
+
+<section id="sparts">
+  <div class="sec-head"><h2>零件草图</h2><span class="eyebrow">一个零件 = 一张图纸</span></div>
+  <p class="lede">每张图都按国标的视图配置画（俯视图在主视图下方，左视图在主视图右方）。“草图风”模拟徒手画在坐标纸上的效果，“CAD 风”就是你后面上机要画成的样子。尺寸是按常见教学球阀给的参考值，结构照你的实物画，数字一定要换成你卡尺量出来的。</p>
+  <div class="tabs" role="tablist" id="tabs"></div>
+  <div class="dwg-tools">
+    <button class="btn" id="btnSketch" aria-pressed="true">草图风</button>
+    <button class="btn" id="btnDims" aria-pressed="true">显示尺寸</button>
+    <div class="legend">
+      <span><svg viewBox="0 0 34 8"><line x1="1" y1="4" x2="33" y2="4" stroke="currentColor" stroke-width="2"/></svg>粗实线 可见轮廓</span>
+      <span><svg viewBox="0 0 34 8"><line x1="1" y1="4" x2="33" y2="4" stroke="currentColor" stroke-width=".8"/></svg>细实线 螺纹小径/剖面线</span>
+      <span><svg viewBox="0 0 34 8"><line x1="1" y1="4" x2="33" y2="4" stroke="currentColor" stroke-width="1" stroke-dasharray="5 2.5"/></svg>细虚线 不可见轮廓</span>
+      <span><svg viewBox="0 0 34 8"><line x1="1" y1="4" x2="33" y2="4" stroke="var(--ctr)" stroke-width="1" stroke-dasharray="12 2 2 2"/></svg>细点画线 中心线</span>
+    </div>
+  </div>
+  <div class="sheet">
+    <div class="dwgbox">
+      <div class="scroll dwgwrap sk" id="pw"><svg class="dwg" id="psvg" role="img" aria-label="零件草图"><g class="art" id="pg"></g></svg></div>
+      <div class="titleblk" id="ptb"></div>
+    </div>
+    <div class="side" id="pside"></div>
+  </div>
+</section>
+
+<section id="sasm">
+  <div class="sec-head"><h2>装配图</h2><span class="eyebrow">A2 · 1:1 · 主视图全剖 + 左视图</span></div>
+  <p class="lede">装配图要表达的是零件之间怎么装、怎么工作，不用把每个零件的细节都画全。注意几条规定画法：相邻零件剖面线方向或间隔要不同；阀杆这种实心杆件和螺栓等标准件纵向剖切时不画剖面线；调整垫这种薄片可以涂黑；填料、密封圈这类非金属用网格线。</p>
+  <div class="sheet">
+    <div class="dwgbox">
+      <div class="scroll dwgwrap" id="aw"><svg class="dwg" id="asvg" role="img" aria-label="球阀装配图"><g class="art" id="ag"></g></svg></div>
+      <div class="titleblk">
+        <div><span class="k">名称</span>球阀</div>
+        <div><span class="k">比例</span>1:1</div>
+        <div><span class="k">图幅</span>A2 594×420</div>
+        <div><span class="k">表达</span>主视图全剖 + 左视图</div>
+        <div><span class="k">建议补</span>俯视图（局部剖）</div>
+      </div>
+    </div>
+    <div class="side">
+      <div>
+        <h3>装配图上必须标的五类尺寸</h3>
+        <ul>
+          <li><b>规格尺寸</b>：通径 Ø20</li>
+          <li><b>配合尺寸</b>：阀体与阀盖止口 Ø50H11/h11，阀杆与阀体孔 Ø14H11/c11</li>
+          <li><b>安装尺寸</b>：两端管螺纹 M36×2</li>
+          <li><b>外形尺寸</b>：总长、总宽、总高</li>
+          <li><b>其他重要尺寸</b>：如扳手转动范围、流道轴线到扳手的高度</li>
+        </ul>
+      </div>
+      <div>
+        <h3>技术要求（可参考）</h3>
+        <ol>
+          <li>装配后扳手转动灵活，开、关各 90° 到位。</li>
+          <li>以 1.6 MPa 水压做密封试验，不得渗漏。</li>
+          <li>调整垫厚度按密封圈压紧程度配作。</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>序号</th><th>名称</th><th>数量</th><th>材料 / 标准</th><th>要不要画零件图</th></tr></thead>
+      <tbody id="bom"></tbody>
+    </table>
+  </div>
+</section>
+
+<section id="sflow">
+  <div class="sec-head"><h2>整个任务怎么走</h2><span class="eyebrow">从拆第一颗螺栓到装进档案袋</span></div>
+  <ol class="flow">
+    <li data-n="1"><span class="when">课前</span><h3>准备工具</h3><p>草稿纸（坐标纸更好）、三角板、自动铅笔、橡皮、手机充满电。量具一般实验室有：游标卡尺、钢直尺，有螺纹规和 R 规最好。</p></li>
+    <li data-n="2"><span class="when">拆之前</span><h3>拍整体照，看懂原理</h3><p>六个方向各拍一张整体照，标签“球阀（1）”也拍下来。转一转扳手：转 90° 时，阀芯的通孔从和管道对齐（开）变成垂直（关），扳手靠头部的限位块卡在阀体凸台的缺口里，只能转 90°。</p></li>
+    <li data-n="3"><span class="when">拆卸</span><h3>边拆边拍，零件按顺序摆好</h3><p>照上面三维图的顺序拆。每拆下一个零件，放在桌上从 3 个以上角度拍，旁边放一把尺子当比例。配合的地方单独拍特写：止口、扁榫和槽、螺纹、限位缺口。</p></li>
+    <li data-n="4"><span class="when">拆完</span><h3>画装配示意图</h3><p>用简单线条和符号画出零件之间的位置关系，并给每个零件编号。这张图是之后装回去和画装配图的依据，很多老师也会检查。</p></li>
+    <li data-n="5"><span class="when">课上主要工作</span><h3>每个非标零件画一张草图</h3><p>阀体、阀盖、阀芯、阀杆、扳手、填料压紧套、密封圈。螺栓、垫圈这些标准件不画，只量规格（直径 d、长度 l），查标准号。草图的步骤见下面的卡片。</p></li>
+    <li data-n="6"><span class="when">集中测量</span><h3>先把尺寸线全画好，最后一次性量</h3><p>边画边量很容易漏。先把所有尺寸界线和尺寸线画出来，然后拿卡尺一个个量、填数。两个零件配合的尺寸（比如止口 Ø50）只量一次，两张图上写同一个数。</p></li>
+    <li data-n="7"><span class="when">装回去</span><h3>按倒序装配</h3><p>装好后转一下扳手确认能开关、不卡。每个人都要亲手拆装一遍。</p></li>
+    <li data-n="8"><span class="when">上机</span><h3>CAD 画零件图（至少 3 张）</h3><p>一个零件一个图框。建议挑阀体（必画，最能体现水平）、阀盖，再从阀杆、阀芯、扳手里选一两个。按草图画，但尺寸要圆整、查标准。</p></li>
+    <li data-n="9"><span class="when">上机</span><h3>CAD 画装配图（A2 一张）</h3><p>用零件图拼装最快：把各零件的视图做成块，按装配关系插入，再修剖面线、可见性，最后标五类尺寸、序号、明细栏、技术要求。</p></li>
+    <li data-n="10"><span class="when">批改</span><h3>交给老师批改，按意见修改</h3><p>上交的是“老师批改完成”的工程图，所以要留出改图的时间。</p></li>
+    <li data-n="11"><span class="when">收尾</span><h3>写说明书、准备答辩</h3><p>说明书目录见下方。答辩前把下面的常见问题过一遍。</p></li>
+    <li data-n="12"><span class="when">提交</span><h3>装进档案袋</h3><p>课程设计说明书、批改后的装配图和零件图、任务书、答辩情况表、成绩评分表，一起封进档案袋。</p></li>
+  </ol>
+</section>
+
+<section>
+  <div class="grid2">
+    <div class="card">
+      <h3>画一张零件草图的顺序</h3>
+      <ol>
+        <li>看懂零件：名称、作用、材料、结构，哪里和别的零件配合。</li>
+        <li>定表达方案：主视图选最能反映形状特征的方向，再决定要几个视图、哪里剖。</li>
+        <li>布图：在一张纸上留好各视图和标注的位置，先画中心线、基准线。</li>
+        <li>目测比例画主要轮廓，几个视图之间保持“长对正、高平齐、宽相等”。</li>
+        <li>画细节：倒角、圆角、螺纹、孔、槽。</li>
+        <li>画剖面线（同一零件各视图里方向和间隔一致）。</li>
+        <li>画出全部尺寸界线、尺寸线和箭头，先不填数字。</li>
+        <li>集中测量，填尺寸数字。</li>
+        <li>写技术要求、表面粗糙度，填标题栏。</li>
+        <li>检查有没有漏线、漏尺寸。</li>
+      </ol>
+    </div>
+    <div class="card">
+      <h3>测量技巧</h3>
+      <ul>
+        <li><b>孔径、轴径</b>：游标卡尺内外量爪，量两三个方向取平均。</li>
+        <li><b>孔深、台阶高度</b>：卡尺尾部的深度尺。</li>
+        <li><b>孔中心距</b>：两孔外侧距离减去一个孔径（孔径相同时）。</li>
+        <li><b>螺纹</b>：量大径，用螺纹规或把螺纹压在纸上数牙得到螺距，再查标准取最接近的规格。</li>
+        <li><b>圆角</b>：R 规比对；没有就目测估，铸造圆角一般 R2～R3。</li>
+        <li><b>球径</b>：卡尺夹住球的最大处，多换几个方向量。</li>
+        <li><b>弯折角度</b>：把扳手侧面正对手机拍照，在照片上量。</li>
+        <li><b>圆整</b>：一般尺寸取整数；配合尺寸取基本尺寸再查公差；螺纹、倒角、退刀槽查标准。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>CAD 设置速查</h3>
+      <div class="tablewrap" style="border:0">
+        <table>
+          <thead><tr><th>图层</th><th>线型</th><th>线宽</th></tr></thead>
+          <tbody>
+            <tr><td>粗实线</td><td>Continuous</td><td class="num">0.5</td></tr>
+            <tr><td>细实线</td><td>Continuous</td><td class="num">0.25</td></tr>
+            <tr><td>中心线</td><td>CENTER（点画线）</td><td class="num">0.25</td></tr>
+            <tr><td>虚线</td><td>HIDDEN</td><td class="num">0.25</td></tr>
+            <tr><td>剖面线</td><td>ANSI31 图案</td><td class="num">0.25</td></tr>
+            <tr><td>尺寸 / 文字</td><td>gbenor.shx + gbcbig.shx（仿宋）</td><td class="num">0.25</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size:.88rem;color:var(--ink2)">图幅：A2 594×420，A3 420×297，A4 210×297（竖放）。尽量用 1:1；标题栏按 GB/T 10609.1，明细栏在标题栏上方，序号从下往上填。</p>
+    </div>
+    <div class="card">
+      <h3>说明书目录参考</h3>
+      <ol>
+        <li>设计任务与要求</li>
+        <li>球阀的作用、工作原理和结构分析</li>
+        <li>拆卸与装配过程（配照片和装配示意图）</li>
+        <li>零件测绘：工具、方法、尺寸圆整</li>
+        <li>零件图的表达方案（每个零件为什么这样选视图）</li>
+        <li>装配图的表达方案、尺寸、技术要求、明细栏</li>
+        <li>心得体会</li>
+        <li>参考文献</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><h2>答辩常被问到的</h2></div>
+  <div class="qa">
+    <details><summary>球阀是怎么开关的？</summary><p>扳手带动阀杆转动，阀杆下端的扁榫插在阀芯顶部的槽里，带着阀芯一起转。阀芯通孔和管道对齐时是开，转 90° 后通孔和管道垂直就关上了。</p></details>
+    <details><summary>靠什么密封？</summary><p>两处。流道靠阀芯左右的两个聚四氟乙烯密封圈压在球面上，调整垫的厚度用来调压紧量。阀杆处靠填料，填料压紧套旋下去把填料压紧，防止介质沿阀杆漏出来。</p></details>
+    <details><summary>扳手为什么只能转 90°？</summary><p>扳手头部有一个限位凸块，卡在阀体凸台顶面的缺口里，转到两头就被挡住。</p></details>
+    <details><summary>阀体主视图为什么选全剖？</summary><p>阀体外形简单、内部复杂，而且前后对称，所以沿两条轴线所在的平面全剖，一个视图就能把流道、内腔、阀杆孔和填料腔都表达清楚。外形交给左视图和俯视图。</p></details>
+    <details><summary>装配图里阀杆为什么不画剖面线？</summary><p>国标规定：剖切平面通过实心杆件（轴、杆、销）和标准件（螺栓、螺母、垫圈）的轴线时，这些零件按不剖处理。</p></details>
+    <details><summary>相邻零件的剖面线怎么区分？</summary><p>方向相反，或者方向相同但间隔不同。同一个零件在各个视图里的剖面线方向和间隔必须一致。</p></details>
+    <details><summary>螺纹连接部分怎么画？</summary><p>旋合的部分按外螺纹画，没旋合的部分按各自的画法画。外螺纹大径粗实线、小径细实线；内螺纹剖开时小径粗实线、大径细实线，剖面线画到粗实线为止。</p></details>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><h2>上交清单</h2><span class="eyebrow">勾选会保存在这台设备的浏览器里</span></div>
+  <ul class="checks card" id="deliver"></ul>
+</section>
+
+<footer>零件结构依据你拍的两段拆装视频（蓝色阀体、方形法兰、铝色阀盖带白色密封圈、四颗螺栓带垫圈），尺寸取常见教学球阀的参考值。限位缺口、扁榫方向、螺栓形式请以实物为准。</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function(){
+"use strict";
+const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+
+/* ---------- 零件资料 ---------- */
+const META={
+  body:{no:1,name:'阀体',qty:1,mat:'ZG230-450',draw:true},
+  cover:{no:2,name:'阀盖',qty:1,mat:'ZG230-450',draw:true},
+  seal:{no:3,name:'密封圈',qty:2,mat:'聚四氟乙烯',draw:true},
+  ball:{no:4,name:'阀芯',qty:1,mat:'40Cr',draw:true},
+  gasket:{no:5,name:'调整垫',qty:1,mat:'聚四氟乙烯',draw:false,note:'薄环形垫片，装配图里涂黑，一般不单独出图'},
+  bolts:{no:6,name:'螺栓 M12×l',qty:4,mat:'GB/T 5782（l 实测后取标准值）',draw:false,std:true},
+  washers:{no:7,name:'垫圈 12',qty:4,mat:'GB/T 97.1 或 GB/T 93（按实物）',draw:false,std:true},
+  packing:{no:8,name:'填料',qty:1,mat:'聚四氟乙烯 / 石棉绳',draw:false,note:'软填料，装配图里画网格线'},
+  gland:{no:9,name:'填料压紧套',qty:1,mat:'35',draw:true},
+  stem:{no:10,name:'阀杆',qty:1,mat:'40Cr',draw:true},
+  wrench:{no:11,name:'扳手',qty:1,mat:'ZG230-450',draw:true}
+};
+const ORDER=['body','cover','seal','ball','gasket','bolts','washers','packing','gland','stem','wrench'];
+
+const INFO={
+  body:{sheet:'A3',scale:'1:1',
+    views:['主视图：沿流道轴线和阀杆轴线所在平面全剖，内腔、密封圈座、阀杆孔、填料腔、内螺纹一次剖清。','左视图：从法兰端看，表达方形法兰、4 个螺孔的分布，以及各级孔的同心关系。','俯视图：表达阀杆凸台、限位缺口和外形宽度。'],
+    measure:['总长（法兰端面到出口端面）','法兰边长、厚度、四角圆角','4 个螺孔中心距和螺纹规格','止口孔直径和深度','内腔直径','右侧密封圈座孔直径和深度','出口通孔直径','出口外螺纹：大径、螺距、长度','凸台外径，凸台顶面到流道轴线的高度','凸台内螺纹规格','填料腔直径和深度、阀杆孔直径','限位缺口的角度和深度','铸造圆角、倒角'],
+    req:['未注铸造圆角 R2～R3','铸件不得有砂眼、气孔、裂纹','铸件时效处理'],
+    tips:['高度方向以流道轴线为主要基准，长度方向以法兰端面为基准。','内螺纹剖开后小径画粗实线、大径画细实线，剖面线画到粗实线。','螺孔不在剖切平面上，主视图不用画，左视图表达清楚即可。','这是最难也最能拿分的一张，建议自己画。']},
+  cover:{sheet:'A4 / A3',scale:'1:1',
+    views:['主视图：轴线水平全剖，和装配位置一致，表达止口、密封圈座孔、通孔和外螺纹。','B 向视图：从法兰面看，表达方形法兰和 4×Ø14 光孔。'],
+    measure:['总长','法兰边长、厚度、圆角','4 个光孔直径和中心距','止口凸台直径和高度','颈部直径','外螺纹：大径、螺距、长度','通孔直径','密封圈座孔直径和深度','倒角'],
+    req:['未注铸造圆角 R2～R3','止口端面与轴线垂直','锐边倒钝、去毛刺'],
+    tips:['止口 Ø50 和阀体止口孔是配合尺寸，两个零件写同一个基本尺寸。','外螺纹：大径粗实线、小径细实线，螺纹终止线粗实线。','4 个相同的孔写成“4×Ø14”，只标一处。']},
+  ball:{sheet:'A4',scale:'2:1',
+    views:['主视图：沿通孔轴线全剖，表达球面、通孔和顶部的槽。','左视图：表达槽的宽度和两端的环形平面。','俯视图：表达槽的形状。'],
+    measure:['球径（多换几个方向量）','通孔直径','两端平面之间的距离','顶部槽宽、槽深','槽的方向和通孔方向的关系'],
+    req:['球面粗糙度 Ra0.8','热处理按老师要求（如淬火）'],
+    tips:['球面直径标 SØ，球面半径标 SR。','零件小，可以用 2:1 放大画，标题栏比例写 2:1。','槽的方向决定开、关时扳手的位置，以实物为准。']},
+  stem:{sheet:'A4',scale:'2:1',
+    views:['主视图 + 左视图：方头和扁榫两个方向的宽度不一样，所以要两个方向都画。','俯视图（或移出断面）：表达方头。'],
+    measure:['总长','方头对边宽度和长度','杆部直径','扁榫宽度、厚度、高度','倒角'],
+    req:['调质处理','杆部 Ra1.6'],
+    tips:['方头、扁榫上的平面画“平面符号”（两条细实线对角线）。','这里竖着画是为了和装配位置对照；交作业按加工位置，轴线水平放更规范。','实心轴类不需要全剖。']},
+  wrench:{sheet:'A4 横放',scale:'1:1',
+    views:['主视图：表达头部厚度、限位凸块和手柄的弯折。','俯视图：表达外形、方孔和端部圆弧。','A—A 移出断面：表达手柄截面。'],
+    measure:['头部直径和厚度','方孔边长','手柄长度、宽度（根部和端部）、厚度','弯折位置和角度','限位凸块尺寸和位置','端部圆弧半径'],
+    req:['未注铸造圆角 R2','表面涂漆'],
+    tips:['弯折角度用照片量最方便：侧面正对镜头拍。','移出断面画在剖切位置附近，标 A—A。','限位凸块要和阀体凸台的缺口对得上。']},
+  gland:{sheet:'A4',scale:'2:1',
+    views:['主视图：半剖，左半剖开表达内孔和螺纹，右半表达外形和顶面的槽。','俯视图：表达顶面的一字槽。'],
+    measure:['外螺纹规格（大径、螺距）','高度','内孔直径','槽宽、槽深','倒角'],
+    req:['锐边倒钝','去毛刺'],
+    tips:['半剖以中心线为界，剖开的一半不画虚线。','俯视图上外螺纹：大径粗实线整圆，小径细实线约 3/4 圈。']},
+  seal:{sheet:'A4',scale:'2:1',
+    views:['主视图：全剖，表达和阀芯接触的球面。','左视图：几个同心圆。'],
+    measure:['外径','内径','厚度','球面半径（约等于阀芯半径）'],
+    req:['材料聚四氟乙烯','球面与阀芯配研'],
+    tips:['非金属材料剖面线画成网格。','两个密封圈一样，画一张图，数量写 2。']}
+};
+
+/* ---------- 绘图引擎（单位 mm，数学坐标 y 向上） ---------- */
+let buf=[],OX=0,OY=0,DIMS=true;
+const F=n=>Math.round(n*100)/100;
+const X=x=>F(x+OX), Y=y=>F(-(y+OY));
+const P=(x,y)=>X(x)+','+Y(y);
+function at(ox,oy,fn){const a=OX,b=OY;OX=ox;OY=oy;fn();OX=a;OY=b;}
+function ln(x1,y1,x2,y2,c){buf.push(`<line x1="${X(x1)}" y1="${Y(y1)}" x2="${X(x2)}" y2="${Y(y2)}" class="${c||'v'}"/>`);}
+function circ(x,y,r,c){buf.push(`<circle cx="${X(x)}" cy="${Y(y)}" r="${r}" class="${c||'v'}"/>`);}
+function path(d,c){buf.push(`<path d="${d}" class="${c||'v'}"/>`);}
+function poly(pts,c){path('M'+pts.map(p=>P(p[0],p[1])).join('L')+'Z',c);}
+function pline(pts,c){path('M'+pts.map(p=>P(p[0],p[1])).join('L'),c);}
+function rect(x1,y1,x2,y2,c){poly([[x1,y1],[x2,y1],[x2,y2],[x1,y2]],c);}
+const mir=pts=>pts.map(p=>[p[0],-p[1]]);
+const shift=(pts,dx,dy)=>pts.map(p=>[p[0]+dx,p[1]+(dy||0)]);
+class PB{constructor(){this.d=''}M(x,y){this.d+='M'+P(x,y);return this}L(x,y){this.d+='L'+P(x,y);return this}
+  A(r,x,y,ccw,large){this.d+=`A${r},${r} 0 ${large?1:0} ${ccw?0:1} ${P(x,y)}`;return this}Z(){this.d+='Z';return this}}
+function arc34(x,y,r,c){path(new PB().M(x+r,y).A(r,x,y-r,true,1).d,c||'t');}
+function txt(x,y,s,c,anchor,rot){const tx=X(x),ty=Y(y);buf.push(`<text x="${tx}" y="${ty}" class="${c||'dt'}" text-anchor="${anchor||'middle'}"${rot?` transform="rotate(${rot} ${tx} ${ty})"`:''}>${s}</text>`);}
+function lbl(x,y,s){txt(x,y,s,'vl');}
+function dline(x1,y1,x2,y2,both){buf.push(`<line x1="${X(x1)}" y1="${Y(y1)}" x2="${X(x2)}" y2="${Y(y2)}" class="d"${both!==false?' marker-start="url(#ar)"':''} marker-end="url(#ar)"/>`);}
+function dimH(x1,y1,x2,y2,yd,s){if(!DIMS)return;
+  const s1=Math.sign(yd-y1),s2=Math.sign(yd-y2);
+  if(Math.abs(yd-y1)>.5)ln(x1,y1+s1*.8,x1,yd+s1*1.5,'d');
+  if(Math.abs(yd-y2)>.5)ln(x2,y2+s2*.8,x2,yd+s2*1.5,'d');
+  dline(x1,yd,x2,yd);txt((x1+x2)/2,yd+.8,s);}
+function dimV(x1,y1,x2,y2,xd,s){if(!DIMS)return;
+  const s1=Math.sign(xd-x1),s2=Math.sign(xd-x2);
+  if(Math.abs(xd-x1)>.5)ln(x1+s1*.8,y1,xd+s1*1.5,y1,'d');
+  if(Math.abs(xd-x2)>.5)ln(x2+s2*.8,y2,xd+s2*1.5,y2,'d');
+  dline(xd,y1,xd,y2);txt(xd-.8,(y1+y2)/2,s,'dt','middle',-90);}
+function leader(x1,y1,x2,y2,s){if(!DIMS)return;
+  const dir=x2>=x1?1:-1,w=s.length*2.6+2;
+  buf.push(`<line x1="${X(x1)}" y1="${Y(y1)}" x2="${X(x2)}" y2="${Y(y2)}" class="d" marker-start="url(#ar)"/>`);
+  ln(x2,y2,x2+dir*w,y2,'d');txt(x2+dir*1,y2+.8,s,'dt',dir>0?'start':'end');}
+function bal(x1,y1,x2,y2,n){circ(x1,y1,.6,'dot');ln(x1,y1,x2,y2,'t');const dir=x2>=x1?1:-1;ln(x2,y2,x2+dir*7,y2,'t');txt(x2+dir*3.5,y2+1,n,'bn');}
+function rsq(h,r){path(new PB().M(-h+r,h).L(h-r,h).A(r,h,h-r,false).L(h,-h+r).A(r,h-r,-h,false).L(-h+r,-h).A(r,-h,-h+r,false).L(-h,h-r).A(r,-h+r,h,false).Z().d,'v');}
+function cross(x,y,r){ln(x-r,y,x+r,y,'c');ln(x,y-r,x,y+r,'c');}
+function hex(x,y,R){const pts=[];for(let i=0;i<6;i++){const a=i*Math.PI/3;pts.push([x+R*Math.cos(a),y+R*Math.sin(a)]);}poly(pts,'v');}
+
+/* ---------- 共用几何 ---------- */
+const BU=[[-22,25],[-22,40],[-18,40],[-18,54],[-11.2,54],[-11.2,40],[-10,40],[-10,30],[-7,30],[-7,21.5],[-17,21.5],[-17,25]];
+const BR=[[7,21.5],[7,30],[10,30],[10,40],[11.2,40],[11.2,54],[18,54],[18,28],[22,28],[22,23],[30,23],[30,18],[44.5,18],[46,16.5],[46,10],[20.3,10],[20.3,17.5],[14,17.5],[14,21.5]];
+const BL=[[-22,-25],[-22,-40],[-10,-40],[-10,-28],[22,-28],[22,-23],[30,-23],[30,-18],[44.5,-18],[46,-16.5],[46,-10],[20.3,-10],[20.3,-17.5],[14,-17.5],[14,-21.5],[-17,-21.5],[-17,-25]];
+const CU=[[-40,10],[-40,16.5],[-38.5,18],[-24,18],[-24,19],[-12,19],[-12,40],[0,40],[0,25],[5,25],[5,17.5],[1.7,17.5],[1.7,10]];
+function ballSec(c){
+  path(new PB().M(-16,10).L(-16,12).A(20,-12,16,false).L(12,16).A(20,16,12,false).L(16,10).Z().d,c);
+  path(new PB().M(16,-10).L(16,-12).A(20,-16,-12,false).L(-16,-10).Z().d,c);
+  path(new PB().M(-11.62,16).A(19.77,11.62,16,false).d,'v');}
+function sealSec(tx,m,c){const S=x=>m?tx-x:tx+x,k=v=>m?!v:v;
+  path(new PB().M(S(0),14).L(S(0),17.5).L(S(6),17.5).L(S(6),10).L(S(3.04),10).A(20,S(0),14,k(true)).Z().d,c);
+  path(new PB().M(S(0),-14).L(S(0),-17.5).L(S(6),-17.5).L(S(6),-10).L(S(3.04),-10).A(20,S(0),-14,k(false)).Z().d,c);}
+
+/* ---------- 各零件草图 ---------- */
+function dBody(){
+  at(0,0,()=>{
+    poly(BU,'v s1');poly(BR,'v s1');poly(BL,'v s1');
+    ln(-17,-21.5,-17,21.5);ln(14,-17.5,14,17.5);ln(20.3,-10,20.3,10);
+    ln(-7,21.5,7,21.5);ln(-7,30,7,30);ln(-10,40,10,40);
+    ln(-12,40,-12,54,'t');ln(12,40,12,54,'t');
+    ln(30,16.3,46,16.3,'t');ln(30,-16.3,46,-16.3,'t');ln(30,16.3,30,18);ln(30,-16.3,30,-18);
+    ln(-28,0,52,0,'c');ln(0,-34,0,58,'c');
+    dimH(-22,-40,46,-18,-49,'68');dimH(-22,-40,-10,-40,-44.5,'12');
+    dimV(46,-10,46,10,52,'Ø20');dimV(46,-18,46,18,58,'M36×2');
+    dimV(-22,0,-18,54,-31,'54');dimV(-22,-25,-22,25,-26,'Ø50');
+    dimV(-4,-21.5,-4,21.5,-4,'Ø43');dimV(17,-17.5,17,17.5,17,'Ø35');
+    dimH(-12,54,12,54,59,'M24×1.5');dimH(-18,54,18,54,65,'Ø36');
+    dimH(-7,26,7,26,26,'Ø14');dimH(-10,35,10,35,35,'Ø20');
+    lbl(12,-57,'主视图（全剖）');
+  });
+  at(125,0,()=>{
+    rsq(40,5);
+    ln(-18,40,-18,54);ln(18,40,18,54);ln(-18,54,18,54);
+    [[29,29],[-29,29],[29,-29],[-29,-29]].forEach(([x,y])=>{circ(x,y,5.1);arc34(x,y,6);cross(x,y,8);});
+    circ(0,0,25);circ(0,0,21.5);circ(0,0,17.5);circ(0,0,10);
+    ln(-46,0,46,0,'c');ln(0,-46,0,58,'c');
+    dimH(-40,-40,40,-40,-47,'80');dimV(40,-40,40,40,47,'80');dimV(-29,-29,-29,29,-46,'58');
+    leader(32.6,32.6,44,50,'4×M12');
+    lbl(0,-57,'左视图');
+  });
+  at(0,-118,()=>{
+    ln(-22,-40,-22,40);ln(-22,40,-10,40);ln(-22,-40,-10,-40);
+    ln(-10,28,-10,40);ln(-10,-28,-10,-40);
+    ln(-10,28,22,28);ln(-10,-28,22,-28);ln(22,23,22,28);ln(22,-23,22,-28);
+    ln(22,23,30,23);ln(22,-23,30,-23);ln(30,18,30,23);ln(30,-18,30,-23);
+    ln(30,18,44.5,18);ln(30,-18,44.5,-18);ln(44.5,18,46,16.5);ln(44.5,-18,46,-16.5);ln(46,-16.5,46,16.5);
+    ln(30,16.3,46,16.3,'t');ln(30,-16.3,46,-16.3,'t');
+    circ(0,0,18);circ(0,0,11.2);arc34(0,0,12);circ(0,0,10);circ(0,0,7);
+    ln(-28,0,52,0,'c');ln(0,-24,0,24,'c');
+    dimV(20,-28,20,28,20,'Ø56');
+    leader(-12.7,12.7,-36,30,'限位缺口按实物补画');
+    lbl(12,-48,'俯视图');
+  });
+}
+function dCover(){
+  at(0,0,()=>{
+    poly(CU,'v s1');poly(mir(CU),'v s1');
+    ln(1.7,-10,1.7,10);
+    ln(-40,16.3,-24,16.3,'t');ln(-40,-16.3,-24,-16.3,'t');ln(-24,16.3,-24,18);ln(-24,-16.3,-24,-18);
+    ln(-45,0,10,0,'c');
+    dimH(-40,-18,5,-25,-50,'45');dimH(-12,-40,0,-40,-45,'12');dimH(0,40,5,25,46,'5');
+    dimV(-40,-18,-40,18,-47,'M36×2');dimV(-30,-10,-30,10,-30,'Ø20');dimV(-18,-19,-18,19,-18,'Ø38');
+    dimV(5,-17.5,5,17.5,9,'Ø35');dimV(5,-25,5,25,15,'Ø50');
+    if(DIMS){dline(26,-32,16,-32,false);txt(27,-31,'B','bn','start');}
+    lbl(-17,-58,'主视图（全剖）');
+  });
+  at(78,0,()=>{
+    rsq(40,5);
+    [[29,29],[-29,29],[29,-29],[-29,-29]].forEach(([x,y])=>{circ(x,y,7);cross(x,y,9);});
+    circ(0,0,25);circ(0,0,17.5);circ(0,0,10);
+    ln(-46,0,46,0,'c');ln(0,-46,0,46,'c');
+    dimH(-40,-40,40,-40,-47,'80');dimV(-29,-29,-29,29,-46,'58');
+    leader(33.95,33.95,46,48,'4×Ø14');
+    lbl(0,-58,'B 向视图');
+  });
+}
+function dBall(){
+  at(0,0,()=>{
+    ballSec('v s1');
+    ln(-25,0,25,0,'c');ln(0,-25,0,25,'c');
+    dimH(-16,-12,16,-12,-27,'32');dimV(-16,-10,-16,10,-22,'Ø20');
+    leader(-14.14,14.14,-28,28,'SØ40');dimV(12,16,0,20,25,'4');
+    lbl(0,-36,'主视图（全剖）');
+  });
+  at(58,0,()=>{
+    path(new PB().M(3,19.77).A(20,-3,19.77,false,1).L(-3,16).L(3,16).Z().d,'v');
+    circ(0,0,12);circ(0,0,10);
+    ln(-25,0,25,0,'c');ln(0,-25,0,25,'c');
+    dimH(-3,19.77,3,19.77,27,'6');leader(8.49,-8.49,24,-24,'Ø24');
+    lbl(0,-36,'左视图');
+  });
+  at(0,-62,()=>{
+    path(new PB().M(16,-12).L(16,12).A(20,-16,12,true).L(-16,-12).A(20,16,-12,true).Z().d,'v');
+    ln(-11.62,3,11.62,3);ln(-11.62,-3,11.62,-3);
+    path(new PB().M(11.62,-3).A(12,11.62,3,true).d,'v');path(new PB().M(-11.62,3).A(12,-11.62,-3,true).d,'v');
+    ln(-16,10,16,10,'h');ln(-16,-10,16,-10,'h');
+    ln(-25,0,25,0,'c');ln(0,-25,0,25,'c');
+    lbl(0,-30,'俯视图');
+  });
+}
+function stemFront(w){
+  rect(-w,0,w,6);rect(-7,6,7,40);
+  pline([[-5,40],[-5,53],[-4,54],[4,54],[5,53],[5,40]]);ln(-5,53,5,53);
+  ln(-5,40,5,53,'t');ln(5,40,-5,53,'t');ln(-w,0,w,6,'t');ln(w,0,-w,6,'t');
+  ln(0,-4,0,58,'c');}
+function dStem(){
+  at(0,0,()=>{stemFront(6);
+    dimV(-6,0,-5,54,-14,'54');dimV(6,0,7,6,12,'6');dimV(5,40,5,54,12,'14');
+    dimH(-7,24,7,24,24,'Ø14');dimH(-6,0,6,0,-5,'12');
+    lbl(0,-12,'主视图');});
+  at(38,0,()=>{stemFront(3);
+    dimH(-3,0,3,0,-5,'6');dimH(-5,54,5,54,59,'□10');
+    lbl(0,-12,'左视图');});
+  at(0,-30,()=>{
+    rect(-5,-5,5,5);rect(-4,-4,4,4,'v');
+    ln(-5,-5,-4,-4);ln(5,-5,4,-4);ln(5,5,4,4);ln(-5,5,-4,4);
+    circ(0,0,7);rect(-6,-3,6,3,'h');
+    ln(-10,0,10,0,'c');ln(0,-10,0,10,'c');
+    lbl(0,-14,'俯视图');});
+}
+function dGland(){
+  at(0,0,()=>{
+    poly([[-7,0],[-11.2,0],[-12,.8],[-12,14],[-7,14]],'v s1');ln(-11.2,.8,-11.2,14,'t');
+    ln(-7,0,0,0);ln(-7,14,-2,14);ln(-2,11,-2,14);ln(-2,11,0,11);
+    pline([[0,0],[11.2,0],[12,.8],[12,14],[2,14],[2,11],[0,11]]);ln(11.2,.8,11.2,14,'t');ln(11.2,0,12,.8);
+    ln(0,-3,0,17,'c');
+    dimV(-12,0,-12,14,-18,'14');dimH(-12,14,12,14,19,'M24×1.5');dimH(-7,5,7,5,5,'Ø14');
+    lbl(0,-8,'主视图（半剖）');
+  });
+  at(0,-34,()=>{
+    circ(0,0,12);arc34(0,0,11.2);circ(0,0,7);
+    [[2,6.71,11.83],[-2,6.71,11.83],[2,-6.71,-11.83],[-2,-6.71,-11.83]].forEach(([x,a,b])=>ln(x,a,x,b));
+    ln(-16,0,16,0,'c');ln(0,-16,0,16,'c');
+    dimH(-2,11.83,2,11.83,17,'4');leader(2,9.5,16,16,'槽深3');
+    lbl(0,-18,'俯视图');
+  });
+}
+function dSeal(){
+  at(0,0,()=>{
+    sealSec(0,false,'v sn');ln(0,-14,0,14);ln(3.04,-10,3.04,10);
+    ln(-5,0,11,0,'c');
+    dimH(0,-17.5,6,-17.5,-23,'6');dimV(6,-10,6,10,10,'Ø20');dimV(6,-17.5,6,17.5,16,'Ø35');
+    leader(1.6,12.6,-12,26,'SR20');
+    lbl(3,-30,'主视图（全剖）');
+  });
+  at(40,0,()=>{
+    circ(0,0,17.5);circ(0,0,14);circ(0,0,10);
+    ln(-22,0,22,0,'c');ln(0,-22,0,22,'c');
+    leader(9.9,9.9,22,22,'Ø28');
+    lbl(0,-30,'左视图');
+  });
+}
+const WF=[[-16,8],[16,8],[16,7],[41.06,7],[145.45,-30.96],[143.4,-36.6],[40,1],[16,1],[16,0],[-8,0],[-8,-4],[-16,-4]];
+function dWrench(){
+  at(0,0,()=>{
+    poly(WF,'v');ln(-5,0,-5,8,'h');ln(5,0,5,8,'h');ln(0,-8,0,13,'c');
+    dimV(-16,0,-16,8,-21,'8');dimV(-16,-4,-16,0,-27,'4');
+    leader(70,-3.5,86,10,'α≈20°（实测）');
+    lbl(60,-48,'主视图');
+  });
+  at(0,-70,()=>{
+    path(new PB().M(13.2,9).L(143,7).A(7,143,-7,false).L(13.2,-9).A(16,13.2,9,false,1).Z().d,'v');
+    rect(-5,-5,5,5);
+    ln(-15.2,5,-8,5,'h');ln(-15.2,-5,-8,-5,'h');ln(-8,-5,-8,5,'h');
+    ln(-20,0,154,0,'c');ln(0,-20,0,20,'c');
+    ln(90,10,90,14,'ct');ln(90,-10,90,-14,'ct');txt(92.5,14,'A','bn','start');txt(92.5,-17,'A','bn','start');
+    dimH(-16,0,150,0,-26,'166');leader(-11.3,11.3,-28,24,'Ø32');leader(147.9,4.9,156,18,'R7');leader(5,-5,22,-20,'□10');
+    lbl(60,-36,'俯视图');
+  });
+  at(118,-118,()=>{
+    rect(-8,-3,8,3,'v s1');
+    dimH(-8,-3,8,-3,-8,'16');dimV(8,-3,8,3,13,'6');
+    txt(0,7,'A—A','bn');
+  });
+}
+const DRAW={body:dBody,cover:dCover,ball:dBall,stem:dStem,wrench:dWrench,gland:dGland,seal:dSeal};
+
+/* ---------- 装配图 ---------- */
+function dAsm(){
+  at(0,0,()=>{
+    const BUa=BU.map(p=>[p[0]===-11.2?-12:p[0],p[1]]),BRa=BR.map(p=>[p[0]===11.2?12:p[0],p[1]]);
+    poly(BUa,'v s1');poly(BRa,'v s1');poly(BL,'v s1');
+    ln(30,16.3,46,16.3,'t');ln(30,-16.3,46,-16.3,'t');ln(30,16.3,30,18);ln(30,-16.3,30,-18);
+    const CUg=shift(CU,-22);poly(CUg,'v s2');poly(mir(CUg),'v s2');
+    ln(-62,16.3,-46,16.3,'t');ln(-62,-16.3,-46,-16.3,'t');ln(-46,16.3,-46,18);ln(-46,-16.3,-46,-18);
+    rect(-22.4,25,-21.6,40,'blk');rect(-22.4,-40,-21.6,-25,'blk');
+    sealSec(14.28,false,'v sn');sealSec(-14.28,true,'v sn');
+    ballSec('v s3');
+    rect(-10,30,-7,40,'v sn');rect(7,30,10,40,'v sn');
+    rect(-12,40,-7,54,'v s2');rect(7,40,12,54,'v s2');ln(-11.2,40,-11.2,54,'t');ln(11.2,40,11.2,54,'t');
+    rect(-6,16,6,22);rect(-7,22,7,56);pline([[-5,56],[-5,69],[-4,70],[4,70],[5,69],[5,56]]);ln(-5,69,5,69);
+    poly([[5,58],[16,58],[16,59],[40,59],[143.4,21.4],[145.45,27.04],[41.06,65],[16,65],[16,66],[5,66]],'v s3');
+    poly([[-16,54],[-8,54],[-8,58],[-5,58],[-5,66],[-16,66]],'v s3');
+    ln(-67,0,52,0,'c');ln(0,-46,0,76,'c');
+    dimH(-62,-18,46,-18,-56,'108');dimV(46,-10,46,10,53,'Ø20');dimV(46,-18,46,18,59,'M36×2');
+    dimV(-19.5,-25,-19.5,25,-19.5,'Ø50H11/h11');dimH(-7,26,7,26,26,'Ø14H11/c11');
+    dimV(-34,-40,-5,70,-76,'110');
+    bal(26,-16,60,-64,'1');bal(-52,-14,-82,-62,'2');bal(17,-14,40,-74,'3');bal(0,-15,14,-82,'4');
+    bal(-22,-32,-40,-74,'5');bal(-8.5,35,-58,58,'8');bal(-9.5,47,-58,70,'9');bal(3,26,62,40,'10');bal(-12,62,-58,84,'11');
+    lbl(100,-12,'主视图（全剖）');
+  });
+  at(225,0,()=>{
+    rsq(40,5);
+    [[29,29],[-29,29],[29,-29],[-29,-29]].forEach(([x,y])=>{circ(x,y,11);hex(x,y,10.4);circ(x,y,9,'t');});
+    circ(0,0,19);circ(0,0,18);arc34(0,0,16.3);circ(0,0,10);
+    ln(-18,40,-18,54);ln(18,40,18,54);ln(-18,54,18,54);
+    rect(-5,54,5,58);rect(-16,58,16,66);pline([[-5,66],[-5,69],[-4,70],[4,70],[5,69],[5,66]]);
+    ln(-46,0,46,0,'c');ln(0,-46,0,76,'c');
+    dimH(-40,-40,40,-40,-48,'80');
+    bal(29,29,58,58,'6');bal(29,18.3,60,10,'7');
+    lbl(0,-66,'左视图');
+  });
+}
+
+/* 按 viewBox 宽度定显示宽度，让各张图的字号和线宽看起来一致；手机上不缩到太小，改为横向滚动 */
+function fit(svg,g){try{const b=g.getBBox(),m=6,w=b.width+2*m;svg.setAttribute('viewBox',`${F(b.x-m)} ${F(b.y-m)} ${F(w)} ${F(b.height+2*m)}`);svg.dataset.vw=w;sizeSvg(svg);}catch(e){}}
+function sizeSvg(svg){const box=svg.parentElement.clientWidth-20,w=+svg.dataset.vw||0;if(!w||box<=0)return;
+  const want=w*4.2,px=box<600?Math.max(w*2.6,box):Math.min(Math.max(want,420),box);svg.style.width=Math.round(px)+'px';}
+window.addEventListener('resize',()=>document.querySelectorAll('svg.dwg').forEach(sizeSvg));
+
+/* ---------- 零件草图 UI ---------- */
+const DRAW_IDS=['body','cover','ball','stem','wrench','gland','seal'];
+let curPart=store.get('qf.part','body');if(!DRAW[curPart])curPart='body';
+const tabs=document.getElementById('tabs'),psvg=document.getElementById('psvg'),pg=document.getElementById('pg'),side=document.getElementById('pside'),ptb=document.getElementById('ptb');
+DRAW_IDS.forEach(id=>{const b=document.createElement('button');b.className='tab';b.role='tab';b.id='tab-'+id;
+  b.innerHTML=`<span class="no">${META[id].no}</span>${META[id].name}`;b.onclick=()=>showPart(id,true);tabs.appendChild(b);});
+function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function renderPart(){buf=[];DRAW[curPart]();pg.innerHTML=buf.join('');fit(psvg,pg);}
+function showPart(id,scroll){
+  curPart=id;store.set('qf.part',id);
+  DRAW_IDS.forEach(k=>document.getElementById('tab-'+k).setAttribute('aria-selected',k===id?'true':'false'));
+  renderPart();
+  const m=META[id],inf=INFO[id];
+  ptb.innerHTML=`<div><span class="k">名称</span>${m.name}</div><div><span class="k">序号</span>${m.no}</div><div><span class="k">材料</span>${m.mat}</div><div><span class="k">数量</span>${m.qty}</div><div><span class="k">建议图幅 · 比例</span>${inf.sheet} · ${inf.scale}</div>`;
+  const checked=store.get('qf.m.'+id,[]);
+  side.innerHTML=`
+    <div><h3>视图方案</h3><ul>${inf.views.map(v=>`<li>${esc(v)}</li>`).join('')}</ul></div>
+    <div><h3>要量的尺寸 <span class="count" id="mc"></span></h3><ul class="checks">${inf.measure.map((v,i)=>`<li><label><input type="checkbox" id="m-${id}-${i}" data-i="${i}"${checked.includes(i)?' checked':''}><span>${esc(v)}</span></label></li>`).join('')}</ul></div>
+    <div><h3>技术要求参考</h3><ol>${inf.req.map(v=>`<li>${esc(v)}</li>`).join('')}</ol></div>
+    <div><h3>注意</h3><ul>${inf.tips.map(v=>`<li>${esc(v)}</li>`).join('')}</ul></div>`;
+  const upd=()=>{const boxes=[...side.querySelectorAll('.checks input')];const on=boxes.filter(b=>b.checked).map(b=>+b.dataset.i);store.set('qf.m.'+id,on);document.getElementById('mc').textContent=`${on.length}/${boxes.length} 已量`;};
+  side.querySelectorAll('.checks input').forEach(b=>b.addEventListener('change',upd));upd();
+  if(scroll)document.getElementById('sparts').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function toggle(btn,fn){btn.addEventListener('click',()=>{const on=btn.getAttribute('aria-pressed')!=='true';btn.setAttribute('aria-pressed',on);fn(on);});}
+toggle(document.getElementById('btnSketch'),on=>{document.getElementById('pw').classList.toggle('sk',on);});
+toggle(document.getElementById('btnDims'),on=>{DIMS=on;renderPart();renderAsm();});
+function renderAsm(){const s=document.getElementById('asvg'),g=document.getElementById('ag');buf=[];dAsm();g.innerHTML=buf.join('');fit(s,g);}
+
+/* 明细栏 */
+document.getElementById('bom').innerHTML=ORDER.map(id=>{const m=META[id];
+  const how=m.draw?`<span class="pill drw">画零件图</span>${id==='seal'?' 两个一样，画一张':''}`:m.std?`<span class="pill std">标准件</span> 不画，查标准`:`<span class="pill std">不画</span> ${m.note}`;
+  return `<tr><td class="num">${m.no}</td><td>${m.name}</td><td class="num">${m.qty}</td><td>${m.mat}</td><td>${how}</td></tr>`;}).join('');
+
+/* 上交清单 */
+const DEL=['课程设计说明书','装配图 A2 一张（老师批改完成）','零件图至少 3 张，A2～A4（老师批改完成）','全部零件草图（一个零件一张纸）','任务书','答辩情况表','成绩评分表','以上全部封进档案袋'];
+const dOn=store.get('qf.deliver',[]);
+const dl=document.getElementById('deliver');
+dl.innerHTML=DEL.map((t,i)=>`<li><label><input type="checkbox" id="d-${i}" data-i="${i}"${dOn.includes(i)?' checked':''}><span>${t}</span></label></li>`).join('');
+dl.addEventListener('change',()=>store.set('qf.deliver',[...dl.querySelectorAll('input')].filter(b=>b.checked).map(b=>+b.dataset.i)));
+
+function drawAll(){renderPart();renderAsm();}
+showPart(curPart,false);renderAsm();
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(drawAll);
+
+/* ---------- 三维 ---------- */
+const STEPS=[
+  {t:'取下扳手',d:'扳手套在阀杆方头上，直接向上拔。先看清扳手头部下面的限位凸块卡在阀体凸台缺口里的位置，拍一张。',parts:['wrench']},
+  {t:'拧下 4 个螺栓和垫圈',d:'对角交替松开，放进小盒子里，别滚丢了。',parts:['bolts','washers']},
+  {t:'取下阀盖和调整垫',d:'阀盖带止口，平着拔出来。调整垫很薄，容易粘在法兰面上。',parts:['cover','gasket']},
+  {t:'取出阀盖里的密封圈',d:'白色那个就是聚四氟乙烯密封圈，嵌在阀盖的座孔里。',parts:['seal_l']},
+  {t:'取出阀芯',d:'转动阀杆，让阀芯顶部的槽顺着出口方向，阀芯才能从法兰口滑出来。',parts:['ball']},
+  {t:'旋出填料压紧套',d:'压紧套顶面有槽，用一字螺丝刀或专用工具旋出。',parts:['gland']},
+  {t:'取出填料',d:'填料是几片环状的软材料，按顺序排好再拍照。',parts:['packing']},
+  {t:'取出阀杆',d:'你视频里是从阀体内腔方向把阀杆抽出来的，照实物来。',parts:['stem']},
+  {t:'取出阀体里的密封圈',d:'最后只剩阀体，右侧座孔里还有一个密封圈。到这里就拆完了。',parts:['seal_r']}
+];
+const stepsEl=document.getElementById('steps'),stepDesc=document.getElementById('stepdesc');
+let stepIdx=-1;
+STEPS.forEach((s,i)=>{const li=document.createElement('li');const b=document.createElement('button');b.className='step';b.innerHTML=`<span class="n">${String(i+1).padStart(2,'0')}</span><span class="t">${s.t}</span>`;b.onclick=()=>setStep(i===stepIdx?i-1:i);li.appendChild(b);stepsEl.appendChild(li);});
+function setStep(i){stepIdx=i;[...stepsEl.querySelectorAll('.step')].forEach((b,k)=>{b.classList.toggle('done',k<i);b.classList.toggle('cur',k===i);});
+  stepDesc.textContent=i<0?'点第 1 步开始。装配就是倒过来做一遍。':STEPS[i].d;if(viewer)viewer.retarget();if(i>=0&&viewer)viewer.select(STEPS[i].parts[0]);}
+
+const partInfo=document.getElementById('partinfo');
+function showInfo(id){const key=id==='seal_l'||id==='seal_r'?'seal':id;const m=META[key];if(!m)return;
+  partInfo.innerHTML=`<div class="eyebrow">当前零件 · 序号 ${m.no}</div><p class="pn">${m.name}${m.draw?'<span class="pill drw">画零件图</span>':m.std?'<span class="pill std">标准件</span>':''}</p>
+  <dl class="kv"><dt>数量</dt><dd>${m.qty}</dd><dt>材料</dt><dd>${m.mat}</dd>${m.note?`<dt>说明</dt><dd>${m.note}</dd>`:''}</dl>
+  ${m.draw?`<p style="margin-top:10px"><button class="btn" id="goDraw">看它的草图</button></p>`:''}`;
+  const g=document.getElementById('goDraw');if(g)g.onclick=()=>showPart(key,true);}
+
+let viewer=null;
+function initViewer(){
+  const stage=document.getElementById('stage');
+  if(!window.THREE||!THREE.OrbitControls){const m=document.createElement('div');m.className='stage-msg';m.textContent='三维模型没加载出来（需要联网加载 three.js）。下面的草图和装配图不受影响。';stage.appendChild(m);return;}
+  const renderer=new THREE.WebGLRenderer({antialias:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.localClippingEnabled=true;
+  stage.insertBefore(renderer.domElement,stage.firstChild);
+  const scene=new THREE.Scene();
+  const cam=new THREE.PerspectiveCamera(35,1,1,4000);cam.position.set(150,125,215);
+  const ctl=new THREE.OrbitControls(cam,renderer.domElement);ctl.target.set(0,15,0);ctl.enableDamping=true;ctl.dampingFactor=.08;ctl.update();
+  scene.add(new THREE.HemisphereLight(0xffffff,0x8a96a3,.75));
+  const d1=new THREE.DirectionalLight(0xffffff,.85);d1.position.set(120,220,160);scene.add(d1);
+  const d2=new THREE.DirectionalLight(0xffffff,.35);d2.position.set(-160,-60,-120);scene.add(d2);
+  const clip=new THREE.Plane(new THREE.Vector3(0,0,-1),0);
+  const allMats=[];
+  const BLUE=0x3a8fd6,STEEL=0xc4cbd1,PTFE=0xf2f2ec,DARK=0x5a5f63;
+  function mat(color,metal,rough){const m=new THREE.MeshStandardMaterial({color,metalness:metal==null?.1:metal,roughness:rough==null?.55:rough,side:THREE.DoubleSide});allMats.push(m);return m;}
+  function lathe(pts,axis,m){const g=new THREE.LatheGeometry(pts.map(p=>new THREE.Vector2(p[0],p[1])),72);if(axis==='x')g.rotateZ(-Math.PI/2);return new THREE.Mesh(g,m);}
+  function flange(half,rc,holeR,centerR,depth){
+    const s=new THREE.Shape();s.moveTo(-half+rc,-half);s.lineTo(half-rc,-half);s.absarc(half-rc,-half+rc,rc,-Math.PI/2,0,false);s.lineTo(half,half-rc);s.absarc(half-rc,half-rc,rc,0,Math.PI/2,false);
+    s.lineTo(-half+rc,half);s.absarc(-half+rc,half-rc,rc,Math.PI/2,Math.PI,false);s.lineTo(-half,-half+rc);s.absarc(-half+rc,-half+rc,rc,Math.PI,1.5*Math.PI,false);
+    [[29,29],[-29,29],[29,-29],[-29,-29]].forEach(([x,y])=>{const p=new THREE.Path();p.absarc(x,y,holeR,0,Math.PI*2,true);s.holes.push(p);});
+    const c=new THREE.Path();c.absarc(0,0,centerR,0,Math.PI*2,true);s.holes.push(c);
+    const g=new THREE.ExtrudeGeometry(s,{depth,bevelEnabled:false,curveSegments:36});g.rotateY(Math.PI/2);return g;}
+  const parts={};
+  function part(id,dir,dist,build){const g=new THREE.Group();g.userData={id,dir:new THREE.Vector3(...dir),dist};build(g);parts[id]=g;scene.add(g);g.traverse(o=>{if(o.isMesh)o.userData.pid=id;});}
+  part('body',[0,0,0],0,g=>{const m=mat(BLUE,.15,.5);
+    g.add(lathe([[21.5,-10],[28,-10],[28,22],[23,22],[23,30],[18,30],[18,44.5],[16.5,46],[10,46],[10,20.3],[17.5,20.3],[17.5,14],[21.5,14],[21.5,-10]],'x',m));
+    const f=new THREE.Mesh(flange(40,5,6,25,12),m);f.position.x=-22;g.add(f);
+    g.add(lathe([[7,20],[18,20],[18,54],[11.6,54],[11.6,40],[10,40],[10,30],[7,30],[7,20]],'y',m));});
+  part('cover',[-1,0,0],72,g=>{const m=mat(STEEL,.5,.4);
+    g.add(lathe([[10,-62],[16.5,-62],[18,-60.5],[18,-46],[19,-46],[19,-34],[25,-34],[25,-17],[17.5,-17],[17.5,-20.3],[10,-20.3],[10,-62]],'x',m));
+    const f=new THREE.Mesh(flange(40,5,7,25,12),m);f.position.x=-34;g.add(f);});
+  part('gasket',[-1,0,0],52,g=>{const f=new THREE.Mesh(flange(40,5,7,25,.8),mat(0xe6dfc8,0,.8));f.position.x=-22.4;g.add(f);});
+  const sealPts=m=>{const a=[[14,0],[17.5,0],[17.5,6],[10,6],[10,3.04]];for(let i=1;i<=8;i++){const h=3.04-3.04*i/8;a.push([Math.sqrt(400-(h+14.28)**2),h]);}a.push([14,0]);return a.map(([r,h])=>[r,m?-14.28-h:14.28+h]);};
+  part('seal_l',[-1,0,0],40,g=>g.add(lathe(sealPts(true),'x',mat(PTFE,0,.7))));
+  part('seal_r',[0,-1,0],58,g=>g.add(lathe(sealPts(false),'x',mat(PTFE,0,.7))));
+  part('ball',[-1,0,0],26,g=>{const a=[[10,-16],[12,-16]];for(let i=1;i<32;i++){const h=-16+32*i/32;a.push([Math.sqrt(400-h*h),h]);}a.push([12,16],[10,16],[10,-16]);g.add(lathe(a,'x',mat(STEEL,.7,.25)));});
+  part('packing',[0,1,0],72,g=>g.add(lathe([[7,30],[10,30],[10,40],[7,40],[7,30]],'y',mat(DARK,0,.9))));
+  part('gland',[0,1,0],92,g=>g.add(lathe([[7,40],[12,40],[12,54],[7,54],[7,40]],'y',mat(STEEL,.6,.35))));
+  part('stem',[0,1,0],52,g=>{const m=mat(STEEL,.65,.3);
+    const s=new THREE.Mesh(new THREE.CylinderGeometry(7,7,34,40),m);s.position.y=39;g.add(s);
+    const q=new THREE.Mesh(new THREE.BoxGeometry(10,14,10),m);q.position.y=63;g.add(q);
+    const t=new THREE.Mesh(new THREE.BoxGeometry(12,6,6),m);t.position.y=19;g.add(t);});
+  part('wrench',[0,1,0],118,g=>{const m=mat(BLUE,.15,.5);
+    const ws=new THREE.Shape();ws.absarc(0,0,16,0,Math.PI*2,false);const sq=new THREE.Path();sq.moveTo(-5,-5);sq.lineTo(-5,5);sq.lineTo(5,5);sq.lineTo(5,-5);sq.lineTo(-5,-5);ws.holes.push(sq);
+    const hg=new THREE.ExtrudeGeometry(ws,{depth:8,bevelEnabled:false,curveSegments:36});hg.rotateX(-Math.PI/2);const h=new THREE.Mesh(hg,m);h.position.y=58;g.add(h);
+    const lug=new THREE.Mesh(new THREE.BoxGeometry(8,4,10),m);lug.position.set(-12,56,0);g.add(lug);
+    const a=new THREE.Mesh(new THREE.BoxGeometry(26,6,18),m);a.position.set(28,62,0);g.add(a);
+    const b=new THREE.Mesh(new THREE.BoxGeometry(108,6,15),m);const ang=-20*Math.PI/180;b.rotation.z=ang;b.position.set(40+54*Math.cos(ang),62+54*Math.sin(ang),0);g.add(b);});
+  const BP=[[29,29],[-29,29],[29,-29],[-29,-29]];
+  part('bolts',[-1,0,0],100,g=>{const m=mat(0xb3bac1,.7,.35);BP.forEach(([y,z])=>{
+    const hg=new THREE.CylinderGeometry(10.4,10.4,7.5,6);hg.rotateZ(Math.PI/2);const h=new THREE.Mesh(hg,m);h.position.set(-40.25,y,z);g.add(h);
+    const sg=new THREE.CylinderGeometry(6,6,22.5,24);sg.rotateZ(Math.PI/2);const s=new THREE.Mesh(sg,m);s.position.set(-25.25,y,z);g.add(s);});});
+  part('washers',[-1,0,0],86,g=>{const m=mat(0xcfd4d8,.6,.4);BP.forEach(([y,z])=>{const ws=new THREE.Shape();ws.absarc(0,0,11,0,Math.PI*2,false);const hp=new THREE.Path();hp.absarc(0,0,6.5,0,Math.PI*2,true);ws.holes.push(hp);
+    const wg=new THREE.ExtrudeGeometry(ws,{depth:2.5,bevelEnabled:false,curveSegments:32});wg.rotateY(Math.PI/2);const w=new THREE.Mesh(wg,m);w.position.set(-36.5,y,z);g.add(w);});});
+
+  const ids=Object.keys(parts),cur={},tgt={};ids.forEach(i=>{cur[i]=0;tgt[i]=0;});
+  let explode=0,spin=false,selected=null;
+  function retarget(){const out=new Set();for(let k=0;k<=stepIdx;k++)STEPS[k].parts.forEach(p=>out.add(p));ids.forEach(i=>tgt[i]=Math.max(explode,out.has(i)?1:0));}
+  function select(id){selected=id;ids.forEach(i=>parts[i].traverse(o=>{if(o.isMesh){o.material.emissive.setHex(i===id?0x1d5a8f:0);o.material.emissiveIntensity=i===id?.45:0;}}));if(id)showInfo(id);}
+  function setBg(){const c=getComputedStyle(document.documentElement).getPropertyValue('--stage').trim()||'#dde5e5';scene.background=new THREE.Color(c);}
+  setBg();
+  try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',setBg);}catch(e){}
+  new MutationObserver(setBg).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+  function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);cam.aspect=w/Math.max(h,1);cam.updateProjectionMatrix();}
+  new ResizeObserver(resize).observe(stage);resize();
+  const ray=new THREE.Raycaster(),mv=new THREE.Vector2(),tip=document.getElementById('tip');
+  function pick(e){const r=renderer.domElement.getBoundingClientRect();mv.x=(e.clientX-r.left)/r.width*2-1;mv.y=-(e.clientY-r.top)/r.height*2+1;ray.setFromCamera(mv,cam);
+    const hits=ray.intersectObjects(scene.children,true).filter(h=>!clipOn||h.point.z<=0.01);return hits.length?hits[0].object.userData.pid:null;}
+  let down=null,clipOn=false;
+  renderer.domElement.addEventListener('pointerdown',e=>{down=[e.clientX,e.clientY];});
+  renderer.domElement.addEventListener('pointerup',e=>{if(down&&Math.hypot(e.clientX-down[0],e.clientY-down[1])<5){select(pick(e));}down=null;});
+  renderer.domElement.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse')return;const id=pick(e);if(id){const k=id.startsWith('seal')?'seal':id;tip.textContent=`${META[k].no} ${META[k].name}`;tip.hidden=false;const r=stage.getBoundingClientRect();tip.style.left=(e.clientX-r.left)+'px';tip.style.top=(e.clientY-r.top)+'px';}else tip.hidden=true;});
+  renderer.domElement.addEventListener('pointerleave',()=>{tip.hidden=true;});
+  document.getElementById('explode').addEventListener('input',e=>{explode=e.target.value/100;retarget();});
+  document.getElementById('btnClip').addEventListener('click',e=>{clipOn=!clipOn;e.currentTarget.setAttribute('aria-pressed',clipOn);allMats.forEach(m=>{m.clippingPlanes=clipOn?[clip]:[];m.needsUpdate=true;});});
+  document.getElementById('btnSpin').addEventListener('click',e=>{spin=!spin;ctl.autoRotate=spin;ctl.autoRotateSpeed=1.2;e.currentTarget.setAttribute('aria-pressed',spin);});
+  document.getElementById('btnReset').addEventListener('click',()=>{explode=0;document.getElementById('explode').value=0;setStep(-1);select(null);partInfo.innerHTML='<div class="eyebrow">当前零件</div><p class="pn">点模型上的零件</p>';});
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  (function loop(){ids.forEach(i=>{cur[i]+=reduce?(tgt[i]-cur[i]):(tgt[i]-cur[i])*.12;const u=parts[i].userData;parts[i].position.copy(u.dir).multiplyScalar(u.dist*cur[i]);});
+    ctl.update();renderer.render(scene,cam);requestAnimationFrame(loop);})();
+  viewer={retarget,select};
+}
+try{initViewer();}catch(e){const m=document.createElement('div');m.className='stage-msg';m.textContent='三维模型初始化失败：'+e.message;document.getElementById('stage').appendChild(m);}
+})();
+</script>
