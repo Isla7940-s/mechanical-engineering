@@ -7,7 +7,7 @@
 /* 版式：像一张铺在绘图桌上的图纸，标题栏做页眉，细线分区，蓝色取自实物阀体漆色，红色只给中心线 */
 :root{
   --paper:#edf1f0; --sheet:#fbfcfb; --ink:#1b2527; --ink2:#566469; --line:#c7d1d1;
-  --accent:#2a7bbf; --accent-ink:#ffffff; --ctr:#c2412d; --dim:#22629a; --hl:#e3eef8; --stage:#dde5e5;
+  --accent:#2a7bbf; --accent-ink:#ffffff; --ctr:#c2412d; --dim:#22629a; --hl:#e3eef8; --stage:#d3dcdd; --stage-hi:#f6f8f8;
   --pencil:#3b4245;
   --f-disp:"Noto Serif SC","Songti SC","SimSun",serif;
   --f-body:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
@@ -15,10 +15,10 @@
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --paper:#101618; --sheet:#172023; --ink:#dde6e7; --ink2:#93a3a8; --line:#2b393d;
-  --accent:#5aa9e8; --accent-ink:#0b1923; --ctr:#ff8a73; --dim:#80c3f7; --hl:#1b2d3a; --stage:#0d1214; --pencil:#c9d0d2; color-scheme:dark}}
+  --accent:#5aa9e8; --accent-ink:#0b1923; --ctr:#ff8a73; --dim:#80c3f7; --hl:#1b2d3a; --stage:#0b1012; --stage-hi:#1f2a2e; --pencil:#c9d0d2; color-scheme:dark}}
 :root[data-theme="dark"]{
   --paper:#101618; --sheet:#172023; --ink:#dde6e7; --ink2:#93a3a8; --line:#2b393d;
-  --accent:#5aa9e8; --accent-ink:#0b1923; --ctr:#ff8a73; --dim:#80c3f7; --hl:#1b2d3a; --stage:#0d1214; --pencil:#c9d0d2; color-scheme:dark}
+  --accent:#5aa9e8; --accent-ink:#0b1923; --ctr:#ff8a73; --dim:#80c3f7; --hl:#1b2d3a; --stage:#0b1012; --stage-hi:#1f2a2e; --pencil:#c9d0d2; color-scheme:dark}
 body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.7}
 .wrap{max-width:1180px;margin:0 auto;padding-block:28px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:44px}
 h1,h2,h3{font-family:var(--f-disp);text-wrap:balance;margin:0;line-height:1.3}
@@ -52,7 +52,7 @@ section{display:grid;gap:18px;min-width:0}
 
 /* 3D */
 .viewer{display:grid;grid-template-columns:minmax(0,1fr) 320px;border:1px solid var(--line);background:var(--sheet)}
-#stage{position:relative;min-height:440px;background:var(--stage);touch-action:none}
+#stage{position:relative;min-height:460px;background:radial-gradient(ellipse 80% 70% at 50% 38%,var(--stage-hi),var(--stage));touch-action:none}
 #stage canvas{display:block;width:100%;height:100%;position:absolute;inset:0}
 #tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--paper);font-size:.8rem;padding:2px 8px;border-radius:2px;transform:translate(10px,-28px);white-space:nowrap}
 .stage-msg{position:absolute;inset:0;display:grid;place-items:center;color:var(--ink2);padding:24px;text-align:center}
@@ -188,6 +188,7 @@ footer{color:var(--ink2);font-size:.82rem;border-top:1px solid var(--line);paddi
       <div class="ctrls">
         <label class="range">爆炸 <input id="explode" type="range" min="0" max="100" value="0"></label>
         <button class="btn" id="btnClip" aria-pressed="false">半剖</button>
+        <button class="btn" id="btnEdge" aria-pressed="true">描边</button>
         <button class="btn" id="btnSpin" aria-pressed="false">自动旋转</button>
         <button class="btn" id="btnReset">装回去</button>
       </div>
@@ -386,6 +387,7 @@ footer{color:var(--ink2);font-size:.82rem;border-top:1px solid var(--line);paddi
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js"></script>
 <script>
 (function(){
 "use strict";
@@ -796,93 +798,171 @@ let viewer=null;
 function initViewer(){
   const stage=document.getElementById('stage');
   if(!window.THREE||!THREE.OrbitControls){const m=document.createElement('div');m.className='stage-msg';m.textContent='三维模型没加载出来（需要联网加载 three.js）。下面的草图和装配图不受影响。';stage.appendChild(m);return;}
-  /* 防闪烁：对数深度缓冲 + 合理的近远平面；所有配合面都留 0.05～0.2 的间隙，同一零件的拼接件互相嵌入而不是共面 */
-  const renderer=new THREE.WebGLRenderer({antialias:true,logarithmicDepthBuffer:true});
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.localClippingEnabled=true;
+  /* 渲染：sRGB 输出 + ACES 色调映射 + 环境贴图反射 + 软阴影；对数深度缓冲，配合面之间都留了间隙，不会闪 */
+  const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,logarithmicDepthBuffer:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+  renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=.92;
+  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.localClippingEnabled=true;renderer.setClearColor(0x000000,0);
   stage.insertBefore(renderer.domElement,stage.firstChild);
   const scene=new THREE.Scene();
-  const cam=new THREE.PerspectiveCamera(35,1,5,3000);cam.position.set(190,150,260);
-  const ctl=new THREE.OrbitControls(cam,renderer.domElement);ctl.target.set(10,20,0);ctl.enableDamping=true;ctl.dampingFactor=.08;ctl.update();
-  scene.add(new THREE.HemisphereLight(0xffffff,0x8a96a3,.75));
-  const d1=new THREE.DirectionalLight(0xffffff,.85);d1.position.set(120,220,160);scene.add(d1);
-  const d2=new THREE.DirectionalLight(0xffffff,.35);d2.position.set(-160,-60,-120);scene.add(d2);
+  if(THREE.RoomEnvironment){const pm=new THREE.PMREMGenerator(renderer);scene.environment=pm.fromScene(new THREE.RoomEnvironment(),0.04).texture;}
+  const cam=new THREE.PerspectiveCamera(32,1,5,3000);cam.position.set(185,160,300);
+  const ctl=new THREE.OrbitControls(cam,renderer.domElement);ctl.target.set(40,26,0);ctl.enableDamping=true;ctl.dampingFactor=.08;ctl.minDistance=70;ctl.maxDistance=900;ctl.update();
+  scene.add(new THREE.HemisphereLight(0xffffff,0x6b7680,.35));
+  const key=new THREE.DirectionalLight(0xffffff,1.5);key.position.set(110,260,150);key.castShadow=true;
+  Object.assign(key.shadow.camera,{left:-230,right:230,top:230,bottom:-230,near:10,far:900});key.shadow.mapSize.set(2048,2048);key.shadow.bias=-0.0004;scene.add(key);
+  const rim=new THREE.DirectionalLight(0xffffff,.45);rim.position.set(-180,80,-160);scene.add(rim);
+  const ground=new THREE.Mesh(new THREE.PlaneGeometry(1600,1600),new THREE.ShadowMaterial({opacity:.16}));ground.rotation.x=-Math.PI/2;ground.position.y=-40.3;ground.receiveShadow=true;scene.add(ground);
+
   const clip=new THREE.Plane(new THREE.Vector3(0,0,-1),0);
-  const allMats=[];
-  const BLUE=0x3a8fd6,STEEL=0xc4cbd1,PTFE=0xf2f2ec,DARK=0x5a5f63,YEL=0xe8e2a8;
-  function mat(color,metal,rough){const m=new THREE.MeshStandardMaterial({color,metalness:metal==null?.1:metal,roughness:rough==null?.55:rough,side:THREE.DoubleSide});allMats.push(m);return m;}
-  function lathe(pts,axis,m,seg){const g=new THREE.LatheGeometry(pts.map(p=>new THREE.Vector2(p[0],p[1])),seg||96);if(axis==='x')g.rotateZ(-Math.PI/2);return new THREE.Mesh(g,m);}
+  const clipMats=[],edgeObjs=[],caps=[];
+  const KIND={
+    paint:['MeshPhysicalMaterial',{color:0x1c62b4,roughness:.42,metalness:0,clearcoat:.5,clearcoatRoughness:.22}],
+    alu:['MeshStandardMaterial',{color:0xd2d7db,roughness:.3,metalness:.9}],
+    steel:['MeshStandardMaterial',{color:0xe3e6e9,roughness:.15,metalness:1}],
+    zinc:['MeshStandardMaterial',{color:0xc3c9cf,roughness:.36,metalness:.85}],
+    ptfe:['MeshStandardMaterial',{color:0xf3f2ec,roughness:.55,metalness:0}],
+    yel:['MeshStandardMaterial',{color:0xe6dfa0,roughness:.55,metalness:0}],
+    pack:['MeshStandardMaterial',{color:0x5b6064,roughness:.85,metalness:.1}]};
+  function mk(kind){const k=KIND[kind],m=new THREE[k[0]](Object.assign({side:THREE.DoubleSide},k[1]));m.color.convertSRGBToLinear();clipMats.push(m);return m;}
+
+  /* ---- 几何工具 ---- */
+  /* 给折线的每个拐角倒圆角（二次贝塞尔近似），r 为圆角半径 */
+  function roundAll(pts,r,closed){const n=pts.length,out=[];
+    for(let i=0;i<n;i++){const P=pts[i];
+      if(!closed&&(i===0||i===n-1)){out.push(P);continue;}
+      const A=pts[(i-1+n)%n],B=pts[(i+1)%n],ax=A[0]-P[0],ay=A[1]-P[1],bx=B[0]-P[0],by=B[1]-P[1],la=Math.hypot(ax,ay),lb=Math.hypot(bx,by);
+      if(la<1e-6||lb<1e-6){out.push(P);continue;}
+      const cs=(ax*bx+ay*by)/(la*lb);if(cs<-.985){out.push(P);continue;}
+      let t=r/Math.tan(Math.acos(Math.max(-1,Math.min(1,cs)))/2);t=Math.min(t,la*.45,lb*.45);
+      const T1=[P[0]+ax/la*t,P[1]+ay/la*t],T2=[P[0]+bx/lb*t,P[1]+by/lb*t];
+      for(let k=0;k<=4;k++){const s=k/4;out.push([(1-s)*(1-s)*T1[0]+2*(1-s)*s*P[0]+s*s*T2[0],(1-s)*(1-s)*T1[1]+2*(1-s)*s*P[1]+s*s*T2[1]]);}}
+    if(closed)out.push(out[0]);return out;}
+  /* 螺纹牙形（回转体剖面上的梯形齿），h 递增 */
+  function thr(rMin,rMaj,h0,h1,p){const a=[];let h=h0;for(;h+p<=h1+1e-6;h+=p)a.push([rMin,h],[rMaj,h+.35*p],[rMaj,h+.65*p]);a.push([rMin,h]);return a;}
+  function thrDown(rMin,rMaj,h0,h1,p){const a=[];let h=h0;for(;h-p>=h1-1e-6;h-=p)a.push([rMin,h],[rMaj,h-.35*p],[rMaj,h-.65*p]);a.push([rMin,h]);return a;}
+  function lathe(pts,axis,seg){const g=new THREE.LatheGeometry(pts.map(p=>new THREE.Vector2(p[0],p[1])),seg||128);if(axis==='x')g.rotateZ(-Math.PI/2);return g;}
+  /* 沿 x 方向拉伸（法兰），b 为倒角 */
+  function extX(shape,x0,depth,b){const g=new THREE.ExtrudeGeometry(shape,{depth:depth-2*(b||0),bevelEnabled:!!b,bevelThickness:b||0,bevelSize:b||0,bevelSegments:3,curveSegments:48});g.translate(0,0,b||0);g.rotateY(Math.PI/2);g.translate(x0,0,0);return g;}
+  /* 沿 y 方向拉伸（扳手、限位块、阀杆方头） */
+  function extY(shape,y0,depth,b){const g=new THREE.ExtrudeGeometry(shape,{depth:depth-2*(b||0),bevelEnabled:!!b,bevelThickness:b||0,bevelSize:b||0,bevelSegments:3,curveSegments:48});g.translate(0,0,b||0);g.rotateX(-Math.PI/2);g.translate(0,y0,0);return g;}
   function rsqShape(half,rc){const s=new THREE.Shape();s.moveTo(-half+rc,-half);s.lineTo(half-rc,-half);s.absarc(half-rc,-half+rc,rc,-Math.PI/2,0,false);s.lineTo(half,half-rc);s.absarc(half-rc,half-rc,rc,0,Math.PI/2,false);
     s.lineTo(-half+rc,half);s.absarc(-half+rc,half-rc,rc,Math.PI/2,Math.PI,false);s.lineTo(-half,-half+rc);s.absarc(-half+rc,-half+rc,rc,Math.PI,1.5*Math.PI,false);return s;}
-  function flange(holeR,centerR,depth){const s=rsqShape(38.75,6);
-    HOLES.forEach(([x,y])=>{const p=new THREE.Path();p.absarc(x,y,holeR,0,Math.PI*2,true);s.holes.push(p);});
-    const c=new THREE.Path();c.absarc(0,0,centerR,0,Math.PI*2,true);s.holes.push(c);
-    const g=new THREE.ExtrudeGeometry(s,{depth,bevelEnabled:false,curveSegments:40});g.rotateY(Math.PI/2);return g;}
-  /* 绕 y 轴的扇环，a1..a2 为 xz 平面内的角度（度） */
-  function sectorY(r1,r2,a1,a2,h,m){const s=new THREE.Shape(),A=a=>a*Math.PI/180;
-    s.absarc(0,0,r2,A(a1),A(a2),false);s.absarc(0,0,r1,A(a2),A(a1),true);
-    const g=new THREE.ExtrudeGeometry(s,{depth:h,bevelEnabled:false,curveSegments:32});g.rotateX(Math.PI/2);g.translate(0,h,0);return new THREE.Mesh(g,m);}
-  const parts={};
-  function part(id,dir,dist,build){const g=new THREE.Group();g.userData={id,dir:new THREE.Vector3(...dir),dist};build(g);parts[id]=g;scene.add(g);g.traverse(o=>{if(o.isMesh)o.userData.pid=id;});}
+  function hole(s,x,y,r){const p=new THREE.Path();p.absarc(x,y,r,0,Math.PI*2,true);s.holes.push(p);}
+  function flShape(inset,centerR,holeR){const s=rsqShape(38.75-inset,6-inset);HOLES.forEach(([x,y])=>hole(s,x,y,holeR+inset));hole(s,0,0,centerR+inset);return s;}
+  function sector(r1,r2,a1,a2){const s=new THREE.Shape(),A=a=>a*Math.PI/180;s.absarc(0,0,r2,A(a1),A(a2),false);s.absarc(0,0,r1,A(a2),A(a1),true);return s;}
+  const shapeOf=pts=>new THREE.Shape(pts.map(p=>new THREE.Vector2(p[0],p[1])));
+  const arcPts=(r,a1,a2,n)=>{const a=[];for(let i=0;i<=n;i++){const t=(a1+(a2-a1)*i/n)*Math.PI/180;a.push([r*Math.cos(t),r*Math.sin(t)]);}return a;};
 
-  part('body',[0,0,0],0,g=>{const m=mat(BLUE,.15,.5);
-    const f=new THREE.Mesh(flange(4.2,25,14),m);f.position.x=-26;g.add(f);
-    g.add(lathe([[22,-21],[28,-21],[28,18],[21,30],[21,41.5],[17.5,41.5],[17.5,43.5],[19,43.5],[19,58],[18,59],[14,59],[14,57],[10,57],[10,22.76],[17.5,22.76],[17.5,15.76],[22,15.76],[22,-21]],'x',m));
-    g.add(lathe([[9,22.2],[18,20.5],[18,61.25],[11.6,61.25],[11.6,44],[10.75,44],[10.75,37.85],[7,37.85],[7,30],[9,30],[9,22.2]],'y',m));
-    const b=sectorY(12.2,18,135,225,4.3,m);b.position.y=60.95;g.add(b);});
-  part('cover',[-1,0,0],80,g=>{const m=mat(STEEL,.5,.4);
-    const f=new THREE.Mesh(flange(4.5,20,12.5),m);f.position.x=-40.1;g.add(f);
-    g.add(lathe([[10,-65.46],[14,-65.46],[14,-67.46],[18,-67.46],[19,-66.46],[19,-51.96],[17.5,-51.96],[17.5,-47],[19,-43],[21.5,-40.1],[22.5,-39.6],[26.13,-39.6],[26.13,-26.05],[24.85,-26.05],[24.85,-21.15],[20.85,-21.15],[20.85,-15.8],[17.5,-15.8],[17.5,-22.76],[10,-22.76],[10,-65.46]],'x',m));});
-  const sealPts=right=>{const a=[[10.05,-22.7],[17.4,-22.7],[17.4,-14.8],[14.27,-14.8]];for(let i=0;i<=10;i++){const r=14.27-4.22*i/10;a.push([r,-Math.sqrt(20.6*20.6-r*r)]);}a.push([10.05,-22.7]);return a.map(([r,h])=>[r,right?-h:h]);};
-  part('seal_l',[-1,0,0],80,g=>g.add(lathe(sealPts(false),'x',mat(PTFE,0,.7))));
-  part('seal_r',[0,-1,0],62,g=>g.add(lathe(sealPts(true),'x',mat(YEL,0,.7))));
-  part('ball',[-1,0,0],30,g=>{
-    const a=[[10,-15.9],[12.94,-15.9]];for(let i=1;i<48;i++){const h=-15.9+31.8*i/48;a.push([Math.sqrt(420.25-h*h),h]);}a.push([12.94,15.9],[10,15.9],[10,-15.9]);
-    const mesh=lathe(a,'x',mat(STEEL,.7,.25),180);
-    /* 顶部槽（和通孔垂直）：把落在槽里的球面顶点压到槽底，宽 9 深 7 */
-    const pos=mesh.geometry.attributes.position;
-    for(let i=0;i<pos.count;i++){const y=pos.getY(i),z=pos.getZ(i);if(y>13.5&&Math.abs(pos.getX(i))<4.5)pos.setY(i,13.5);}
-    pos.needsUpdate=true;mesh.geometry.computeVertexNormals();g.add(mesh);});
-  part('packing',[0,1,0],88,g=>g.add(lathe([[7.05,38],[10.6,38],[10.6,45.8],[7.05,45.8],[7.05,38]],'y',mat(DARK,0,.9))));
-  part('gland',[0,1,0],108,g=>g.add(lathe([[7.21,45.85],[11.4,45.85],[11.4,57.25],[10.6,57.25],[10.6,61.2],[8,61.2],[8,57.25],[7.21,57.25],[7.21,45.85]],'y',mat(STEEL,.6,.35))));
-  part('stem',[0,1,0],62,g=>{const m=mat(STEEL,.65,.3);
-    const t=new THREE.Mesh(new THREE.BoxGeometry(8.2,6.3,17.4),m);t.position.y=17.15;g.add(t);
-    const c=new THREE.Mesh(new THREE.CylinderGeometry(8.85,8.85,10,48),m);c.position.y=25;g.add(c);
-    const s=new THREE.Mesh(new THREE.CylinderGeometry(6.9,6.9,28.2,40),m);s.position.y=43.6;g.add(s);
-    const q=new THREE.Mesh(new THREE.BoxGeometry(10.4,18.3,10.4),m);q.position.y=66.15;g.add(q);});
-  part('wrench',[0,1,0],128,g=>{const m=mat(BLUE,.15,.5);
-    const ws=new THREE.Shape();ws.absarc(0,0,16.7,0,Math.PI*2,false);const sq=new THREE.Path();sq.moveTo(-5.5,-5.5);sq.lineTo(-5.5,5.5);sq.lineTo(5.5,5.5);sq.lineTo(5.5,-5.5);sq.lineTo(-5.5,-5.5);ws.holes.push(sq);
-    const hg=new THREE.ExtrudeGeometry(ws,{depth:10.5,bevelEnabled:false,curveSegments:40});hg.rotateX(-Math.PI/2);const h=new THREE.Mesh(hg,m);h.position.y=65.47;g.add(h);
-    const lug=sectorY(7.9,16.7,-45,135,4.42,m);lug.position.y=61.3;g.add(lug);
-    const hs=new THREE.Shape(),N=[8,16.7,30,52.95,90,130,156.43];
-    hs.moveTo(N[0],ww(N[0]));N.slice(1).forEach(u=>hs.lineTo(u,ww(u)));hs.absarc(156.43,0,7.52,Math.PI/2,-Math.PI/2,true);N.slice().reverse().forEach(u=>hs.lineTo(u,-ww(u)));
-    const lg=new THREE.ExtrudeGeometry(hs,{depth:8.4,bevelEnabled:false,curveSegments:20});lg.rotateX(-Math.PI/2);
-    const lp=lg.attributes.position,lift=u=>u<16.7?0:u<52.95?(u-16.7)*Math.tan(25*Math.PI/180):16.9;
-    for(let i=0;i<lp.count;i++)lp.setY(i,lp.getY(i)+67.5+lift(lp.getX(i)));
-    lp.needsUpdate=true;lg.computeVertexNormals();g.add(new THREE.Mesh(lg,m));});
-  part('bolts',[-1,0,0],110,g=>{const m=mat(0xb3bac1,.7,.35);HOLES.forEach(([y,z])=>{
-    const hg=new THREE.CylinderGeometry(7.5,7.5,5.3,6);hg.rotateZ(Math.PI/2);const h=new THREE.Mesh(hg,m);h.position.set(-42.75,y,z);g.add(h);
-    const sg=new THREE.CylinderGeometry(3.9,3.9,25.5,24);sg.rotateZ(Math.PI/2);const s=new THREE.Mesh(sg,m);s.position.set(-27.85,y,z);g.add(s);});});
+  /* 剖面线贴图（剖切封面用） */
+  function hatchTex(base,line,crossH,period){const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');x.fillStyle=base;x.fillRect(0,0,64,64);x.strokeStyle=line;x.lineWidth=2.4;
+    const L=(a,b,c2,d)=>{x.beginPath();x.moveTo(a,b);x.lineTo(c2,d);x.stroke();};
+    [-64,0,64].forEach(o=>L(o,64,o+64,0));if(crossH)[-64,0,64].forEach(o=>L(o,0,o+64,64));
+    const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(1/period,1/period);t.encoding=THREE.sRGBEncoding;t.anisotropy=4;return t;}
+  const CAP={metal:['#c9ced3','#3b4650',false,3.2],metal2:['#c3cbd2','#2c5f8f',false,2.2],soft:['#ecebe2','#6b6a5c',true,2.2],pack:['#8c9296','#2d3236',true,2],steel:['#d6dadd','#3b4650',false,1.6]};
+  const parts={};
+  function add(g,geo,mat){const m=new THREE.Mesh(geo,mat);m.castShadow=true;m.receiveShadow=true;g.add(m);
+    const lm=new THREE.LineBasicMaterial({color:0x0f1a20,transparent:true,opacity:.42});clipMats.push(lm);
+    const e=new THREE.LineSegments(new THREE.EdgesGeometry(geo,28),lm);g.add(e);edgeObjs.push(e);return m;}
+  function addCap(g,polys,style){const s=CAP[style],mat=new THREE.MeshBasicMaterial({map:hatchTex(s[0],s[1],s[2],s[3]),side:THREE.DoubleSide,toneMapped:false});
+    polys.forEach(p=>{const m=new THREE.Mesh(new THREE.ShapeGeometry(shapeOf(p)),mat);m.position.z=.03;m.visible=false;m.userData.cap=true;g.add(m);caps.push(m);});}
+  function part(id,dir,dist,build){const g=new THREE.Group();g.userData={id,dir:new THREE.Vector3(...dir),dist};build(g);parts[id]=g;scene.add(g);g.traverse(o=>{o.userData.pid=id;});}
+
+  /* ---- 阀体：蓝漆铸件，法兰端面、内孔、螺纹是机加工的铝色 ---- */
+  part('body',[0,0,0],0,g=>{const pa=mk('paint'),al=mk('alu');
+    add(g,extX(flShape(0,25,4.2),-26,.6),al);
+    add(g,extX(flShape(.8,25,4.2),-25.45,13.45,.8),pa);
+    add(g,lathe(roundAll([[28,-21.5],[28,8],[27.6,12],[26.5,16],[24.6,20],[22.6,24],[21.4,28],[21,31],[21,40.6],[20.3,41.5]],1,false),'x'),pa);
+    add(g,lathe(roundAll([[20.3,41.5],[17.5,41.5],[17.5,43.5],[18.2,43.5]].concat(thr(18.2,19,44,57.6,1.5)).concat([[19,58],[18,59],[14,59],[14,57],[10,57],[10,22.76],[17.5,22.76],[17.5,15.76],[22,15.76],[22,-21],[25.2,-21]]),.3,false),'x'),al);
+    add(g,lathe(roundAll([[18,20.5],[18,60.4],[17.2,61.25],[12.4,61.25]],.6,false),'y'),pa);
+    add(g,lathe(roundAll([[12.4,61.25],[12,61.25]].concat(thrDown(10.92,12,60.8,44.6,2)).concat([[10.92,44],[10.75,44],[10.75,37.85],[7,37.85],[7,30],[9,30],[9,22.2]]),.25,false),'y'),al);
+    add(g,extY(sector(12.6,17.6,137,223),60.9,4.35,.4),pa);
+    addCap(g,[BU,BR,BL],'metal');});
+
+  /* ---- 阀盖：铝件，法兰四周刷蓝漆 ---- */
+  const CUc=[[-67.46,14],[-67.46,18],[-66.46,19],[-51.96,19],[-51.96,17.5],[-47,17.5],[-43,19],[-40.1,22],[-40.1,38.75],[-27.6,38.75],[-27.6,26.18],[-26.05,26.18],[-26.05,24.85],[-21.15,24.85],[-21.15,20.85],[-15.8,20.85],[-15.8,17.5],[-22.76,17.5],[-22.76,10],[-65.46,10],[-65.46,14]];
+  part('cover',[-1,0,0],82,g=>{const al=mk('alu'),pa=mk('paint');
+    add(g,extX(flShape(.6,20,4.5),-40.1,12.5,.6),[al,pa]);
+    add(g,lathe(roundAll([[10,-65.46],[14,-65.46],[14,-67.46],[18.2,-67.46]].concat(thr(18.2,19,-67,-52.4,1.5)).concat([[18.2,-51.96],[17.5,-51.96],[17.5,-49.5],[18,-47],[19.2,-44.5],[20.8,-42.2],[22.4,-40.5],[23.5,-39.6],[26.13,-39.6],[26.13,-26.05],[24.85,-26.05],[24.85,-21.15],[20.85,-21.15],[20.85,-15.8],[17.5,-15.8],[17.5,-22.76],[10,-22.76]]),.4,true),'x'),al);
+    addCap(g,[CUc,mir(CUc)],'metal2');});
+
+  /* ---- 密封圈：碗口是 SR20.5 球面 ---- */
+  const sealProf=right=>{const a=[[10.05,-22.7],[17.4,-22.7],[17.4,-14.8],[14.27,-14.8]];for(let i=0;i<=10;i++){const r=14.27-4.22*i/10;a.push([r,-Math.sqrt(20.6*20.6-r*r)]);}return a.map(([r,h])=>[r,right?-h:h]);};
+  const sealCap=(right,up)=>{const S=x=>right?-x:x,Yy=y=>up?y:-y;const a=[[-22.76,10],[-22.76,17.5],[-14.76,17.5],[-14.76,14.23]].concat(arcPts(20.5,136.04,150.81,10).slice(1,-1)).concat([[-17.9,10]]);return a.map(([x,y])=>[S(x),Yy(y)]);};
+  part('seal_l',[-1,0,0],82,g=>{add(g,lathe(roundAll(sealProf(false),.25,true),'x'),mk('ptfe'));addCap(g,[sealCap(false,true),sealCap(false,false)],'soft');});
+  part('seal_r',[1,0,0],80,g=>{add(g,lathe(roundAll(sealProf(true),.25,true),'x'),mk('yel'));addCap(g,[sealCap(true,true),sealCap(true,false)],'soft');});
+
+  /* ---- 阀芯：球面 + 两端平面 + 通孔，顶部的槽和通孔垂直（宽 9 深 7），槽壁是真正的竖直面 ---- */
+  part('ball',[-1,0,0],32,g=>{
+    const H=[];for(let i=1;i<64;i++){const h=-15.9+31.8*i/64;if(Math.abs(Math.abs(h)-4.5)>.2)H.push(h);}H.push(-4.5,4.5);H.sort((a,b)=>a-b);
+    const prof=[[10,-15.9],[12.94,-15.9]],inner=new Set(),R=h=>Math.sqrt(420.25-h*h);
+    H.forEach(h=>{if(h===-4.5){prof.push([R(h),h]);inner.add(prof.length);prof.push([R(h),h]);}
+      else if(h===4.5){inner.add(prof.length);prof.push([R(h),h]);prof.push([R(h),h]);}
+      else{if(Math.abs(h)<4.5)inner.add(prof.length);prof.push([R(h),h]);}});
+    prof.push([12.94,15.9],[10,15.9],[10,-15.9]);
+    const geo=lathe(prof,'x',256),pos=geo.attributes.position,np=prof.length;
+    for(let i=0;i<pos.count;i++){if(inner.has(i%np)&&pos.getY(i)>13.5)pos.setY(i,13.5);}
+    pos.needsUpdate=true;geo.computeVertexNormals();add(g,geo,mk('steel'));
+    const up=[[-15.9,10],[-15.9,12.94]].concat(arcPts(20.5,140.86,102.68,14).slice(1)).concat([[-4.5,13.5],[4.5,13.5]]).concat(arcPts(20.5,77.32,39.14,14)).concat([[15.9,10]]);
+    const lo=[[15.9,-10],[15.9,-12.94]].concat(arcPts(20.5,-39.14,-140.86,30).slice(1)).concat([[-15.9,-10]]);
+    addCap(g,[up,lo],'steel');});
+
+  part('packing',[0,1,0],90,g=>{add(g,lathe(roundAll([[7.05,38],[10.6,38],[10.6,45.8],[7.05,45.8]],.7,true),'y',96),mk('pack'));
+    addCap(g,[[[-10.75,37.85],[-7,37.85],[-7,45.85],[-10.75,45.85]],[[7,37.85],[10.75,37.85],[10.75,45.85],[7,45.85]]],'pack');});
+
+  /* ---- 填料压紧套：外螺纹 + 顶部光环，光环上开两道一字槽 ---- */
+  part('gland',[0,1,0],110,g=>{const al=mk('alu');
+    add(g,lathe(roundAll([[7.21,45.85],[10.8,45.85]].concat(thr(10.8,11.6,46.2,56.9,2)).concat([[10.6,57.25],[10.6,58.45],[8,58.45],[8,57.25],[7.21,57.25]]),.25,true),'y',96),al);
+    const d=9.3;[[90+d,270-d],[270+d,450-d]].forEach(([a1,a2])=>add(g,extY(sector(8.25,10.35,a1,a2),58.35,2.85,.25),al));
+    addCap(g,[[[-12,45.85],[-7.21,45.85],[-7.21,57.25],[-8,57.25],[-8,61.25],[-10.75,61.25],[-10.75,57.25],[-12,57.25]],[[12,45.85],[7.21,45.85],[7.21,57.25],[8,57.25],[8,61.25],[10.75,61.25],[10.75,57.25],[12,57.25]]],'metal2');});
+
+  /* ---- 阀杆：凸肩 + 杆 + 方头，扁榫两端是凸肩圆柱的圆弧 ---- */
+  part('stem',[0,1,0],62,g=>{const st=mk('steel');
+    add(g,lathe(roundAll([[0,19.9],[8.5,19.9],[9,20.4],[9,29.5],[8.5,30],[7,30],[7,57.7],[0,57.7]],.3,false),'y',96),st);
+    const hw=3.8,Rt=8.7,z0=Math.sqrt(Rt*Rt-hw*hw),th=Math.atan2(z0,hw),ts=new THREE.Shape();
+    ts.moveTo(hw,-z0);ts.lineTo(hw,z0);ts.absarc(0,0,Rt,th,Math.PI-th,false);ts.lineTo(-hw,-z0);ts.absarc(0,0,Rt,Math.PI+th,2*Math.PI-th,false);
+    add(g,extY(ts,14,6.3,.3),st);
+    add(g,extY(rsqShape(4.7,.6),57.3,18,.5),st);
+    addCap(g,[[[-4.1,14],[4.1,14],[4.1,20],[9,20],[9,30],[7,30],[7,57.3],[5.25,57.3],[5.25,75.3],[-5.25,75.3],[-5.25,57.3],[-7,57.3],[-7,30],[-9,30],[-9,20],[-4.1,20]]],'steel');});
+
+  /* ---- 扳手：圆头 + 半圈限位凸块 + 两处 155° 弯折的手柄 ---- */
+  part('wrench',[0,1,0],130,g=>{const pa=mk('paint'),al=mk('alu');
+    const hs=new THREE.Shape();hs.absarc(0,0,15.9,0,Math.PI*2,false);const sq=new THREE.Path();sq.moveTo(-6.3,-6.3);sq.lineTo(-6.3,6.3);sq.lineTo(6.3,6.3);sq.lineTo(6.3,-6.3);sq.lineTo(-6.3,-6.3);hs.holes.push(sq);
+    add(g,extY(hs,65.47,10.5,.8),pa);
+    add(g,extY(sector(8.3,16.3,-45,135),61.3,4.6,.4),al);
+    const ss=(a,b,u)=>{const t=Math.max(0,Math.min(1,(u-a)/(b-a)));return t*t*(3-2*t);},tan=Math.tan(25*Math.PI/180),LT=[0];
+    for(let i=0;i<800;i++){const u=i*.25;LT.push(LT[i]+tan*(ss(12.2,21.2,u)-ss(48.45,57.45,u))*.25);}
+    const lift=u=>LT[Math.max(0,Math.min(LT.length-1,Math.round(u/.25)))];
+    const w=u=>ww(u)-.7,U=[];for(let u=6;u<156.43;u+=2)U.push(u);U.push(156.43);
+    const hd=new THREE.Shape();hd.moveTo(U[0],w(U[0]));U.slice(1).forEach(u=>hd.lineTo(u,w(u)));hd.absarc(156.43,0,w(156.43),Math.PI/2,-Math.PI/2,true);U.slice().reverse().forEach(u=>hd.lineTo(u,-w(u)));
+    const lg=new THREE.ExtrudeGeometry(hd,{depth:7,bevelEnabled:true,bevelThickness:.7,bevelSize:.7,bevelSegments:3,curveSegments:24});lg.translate(0,0,.7);lg.rotateX(-Math.PI/2);
+    const lp=lg.attributes.position;for(let i=0;i<lp.count;i++)lp.setY(i,lp.getY(i)+67.5+lift(lp.getX(i)));
+    lp.needsUpdate=true;lg.computeVertexNormals();add(g,lg,pa);
+    addCap(g,[[[-16.7,65.47],[-5.5,65.47],[-5.5,75.97],[-16.7,75.97]],[[5.5,61.25],[16.7,61.25],[16.7,67.57],[52.95,84.47],[163.95,84.47],[163.95,92.87],[51.08,92.87],[16.7,76.84],[16.7,75.97],[5.5,75.97]]],'metal2');});
+
+  /* ---- 螺栓 M8×25：倒角六角头 + 带牙螺杆，头底面离阀盖法兰 0.05 ---- */
+  part('bolts',[-1,0,0],112,g=>{const zn=mk('zinc');
+    const hx=new THREE.Shape();for(let i=0;i<6;i++){const a=i*Math.PI/3,p=[7*Math.cos(a),7*Math.sin(a)];i?hx.lineTo(p[0],p[1]):hx.moveTo(p[0],p[1]);}
+    const shank=roundAll([[0,-40.5],[3.9,-40.5],[3.9,-38.5]].concat(thr(3.3,3.95,-38.2,-16.2,1.25)).concat([[3.3,-15.1],[0,-15.1]]),.15,false);
+    HOLES.forEach(([y,z])=>{const hg=extX(hx,-45.45,5.3,.5);hg.translate(0,y,z);add(g,hg,zn);const sg=lathe(shank,'x',48);sg.translate(0,y,z);add(g,sg,zn);});});
 
   const ids=Object.keys(parts),cur={},tgt={};ids.forEach(i=>{cur[i]=0;tgt[i]=0;});
   let explode=0,spin=false,clipOn=false;
   function retarget(){const out=new Set();for(let k=0;k<=stepIdx;k++)STEPS[k].parts.forEach(p=>out.add(p));ids.forEach(i=>tgt[i]=Math.max(explode,out.has(i)?1:0));}
-  function select(id){ids.forEach(i=>parts[i].traverse(o=>{if(o.isMesh){o.material.emissive.setHex(i===id?0x1d5a8f:0);o.material.emissiveIntensity=i===id?.45:0;}}));if(id)showInfo(id);}
-  function setBg(){const c=getComputedStyle(document.documentElement).getPropertyValue('--stage').trim()||'#dde5e5';scene.background=new THREE.Color(c);}
-  setBg();
-  try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',setBg);}catch(e){}
-  new MutationObserver(setBg).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+  function select(id){ids.forEach(i=>parts[i].traverse(o=>{if(!o.isMesh)return;(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{if(m.emissive){m.emissive.setHex(i===id?0x1d5a8f:0);m.emissiveIntensity=i===id?.35:0;}});}));if(id)showInfo(id);}
   function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);cam.aspect=w/Math.max(h,1);cam.updateProjectionMatrix();}
   new ResizeObserver(resize).observe(stage);resize();
   const ray=new THREE.Raycaster(),mv=new THREE.Vector2(),tip=document.getElementById('tip');
   function pick(e){const r=renderer.domElement.getBoundingClientRect();mv.x=(e.clientX-r.left)/r.width*2-1;mv.y=-(e.clientY-r.top)/r.height*2+1;ray.setFromCamera(mv,cam);
-    const hits=ray.intersectObjects(scene.children,true).filter(h=>!clipOn||h.point.z<=0.01);return hits.length?hits[0].object.userData.pid:null;}
+    const hits=ray.intersectObjects(scene.children,true).filter(h=>h.object.isMesh&&h.object.visible&&h.object.userData.pid&&(!clipOn||h.object.userData.cap||h.point.z<=0.01));return hits.length?hits[0].object.userData.pid:null;}
   let down=null;
   renderer.domElement.addEventListener('pointerdown',e=>{down=[e.clientX,e.clientY];});
   renderer.domElement.addEventListener('pointerup',e=>{if(down&&Math.hypot(e.clientX-down[0],e.clientY-down[1])<5){select(pick(e));}down=null;});
   renderer.domElement.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse')return;const id=pick(e);if(id){const k=id.startsWith('seal')?'seal':id;tip.textContent=`${META[k].no} ${META[k].name}`;tip.hidden=false;const r=stage.getBoundingClientRect();tip.style.left=(e.clientX-r.left)+'px';tip.style.top=(e.clientY-r.top)+'px';}else tip.hidden=true;});
   renderer.domElement.addEventListener('pointerleave',()=>{tip.hidden=true;});
   document.getElementById('explode').addEventListener('input',e=>{explode=e.target.value/100;retarget();});
-  document.getElementById('btnClip').addEventListener('click',e=>{clipOn=!clipOn;e.currentTarget.setAttribute('aria-pressed',clipOn);allMats.forEach(m=>{m.clippingPlanes=clipOn?[clip]:[];m.needsUpdate=true;});});
+  document.getElementById('btnClip').addEventListener('click',e=>{clipOn=!clipOn;e.currentTarget.setAttribute('aria-pressed',clipOn);clipMats.forEach(m=>{m.clippingPlanes=clipOn?[clip]:[];m.needsUpdate=true;});caps.forEach(c=>c.visible=clipOn);});
+  document.getElementById('btnEdge').addEventListener('click',e=>{const on=e.currentTarget.getAttribute('aria-pressed')!=='true';e.currentTarget.setAttribute('aria-pressed',on);edgeObjs.forEach(o=>o.visible=on);});
   document.getElementById('btnSpin').addEventListener('click',e=>{spin=!spin;ctl.autoRotate=spin;ctl.autoRotateSpeed=1.2;e.currentTarget.setAttribute('aria-pressed',spin);});
   document.getElementById('btnReset').addEventListener('click',()=>{explode=0;document.getElementById('explode').value=0;setStep(-1);select(null);partInfo.innerHTML='<div class="eyebrow">当前零件</div><p class="pn">点模型上的零件</p>';});
   const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
