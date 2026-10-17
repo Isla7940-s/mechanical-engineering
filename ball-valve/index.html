@@ -54,6 +54,8 @@ section{display:grid;gap:18px;min-width:0}
 .viewer{display:grid;grid-template-columns:minmax(0,1fr) 320px;border:1px solid var(--line);background:var(--sheet)}
 #stage{position:relative;min-height:460px;background:radial-gradient(ellipse 80% 70% at 50% 38%,var(--stage-hi),var(--stage));touch-action:none}
 #stage canvas{display:block;width:100%;height:100%;position:absolute;inset:0}
+.isobar{position:absolute;left:10px;right:10px;top:10px;display:flex;flex-wrap:wrap;gap:6px;z-index:1}
+.isobar .btn{font-size:.8rem;padding:3px 10px}
 #tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--paper);font-size:.8rem;padding:2px 8px;border-radius:2px;transform:translate(10px,-28px);white-space:nowrap}
 .stage-msg{position:absolute;inset:0;display:grid;place-items:center;color:var(--ink2);padding:24px;text-align:center}
 .ctrls{position:absolute;left:10px;right:10px;bottom:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -181,10 +183,11 @@ footer{color:var(--ink2);font-size:.82rem;border-top:1px solid var(--line);paddi
 
 <section id="s3d">
   <div class="sec-head"><h2>三维拆装</h2><span class="eyebrow">拖动旋转 · 滚轮缩放 · 点零件看信息</span></div>
-  <p class="lede">按拆卸顺序一步步点，看每一步拿下来的是哪个零件。打开“半剖”可以看到内部：阀芯、两个密封圈、填料、阀杆的凸肩和扁榫，还有阀盖和阀体法兰之间那条 1.6 的缝。</p>
+  <p class="lede">按拆卸顺序一步步点，看每一步拿下来的是哪个零件。想细看某一个零件，点模型上方的零件名，或者直接双击模型里的零件，它会被单独拿出来，可以随便转、剖开看。打开“半剖”可以看到内部：阀芯、两个密封圈、填料、阀杆的凸肩和扁榫，还有阀盖和阀体法兰之间那条 1.6 的缝。</p>
   <div class="viewer">
     <div id="stage">
       <div id="tip" hidden></div>
+      <div class="isobar" id="isobar" role="toolbar" aria-label="单独查看零件"></div>
       <div class="ctrls">
         <label class="range">爆炸 <input id="explode" type="range" min="0" max="100" value="0"></label>
         <button class="btn" id="btnClip" aria-pressed="false">半剖</button>
@@ -784,15 +787,16 @@ const STEPS=[
 const stepsEl=document.getElementById('steps'),stepDesc=document.getElementById('stepdesc');
 let stepIdx=-1;
 STEPS.forEach((s,i)=>{const li=document.createElement('li');const b=document.createElement('button');b.className='step';b.innerHTML=`<span class="n">${String(i+1).padStart(2,'0')}</span><span class="t">${s.t}</span>`;b.onclick=()=>setStep(i===stepIdx?i-1:i);li.appendChild(b);stepsEl.appendChild(li);});
-function setStep(i){stepIdx=i;[...stepsEl.querySelectorAll('.step')].forEach((b,k)=>{b.classList.toggle('done',k<i);b.classList.toggle('cur',k===i);});
+function setStep(i){if(viewer&&viewer.isIso())viewer.isolate(null);stepIdx=i;[...stepsEl.querySelectorAll('.step')].forEach((b,k)=>{b.classList.toggle('done',k<i);b.classList.toggle('cur',k===i);});
   stepDesc.textContent=i<0?'点第 1 步开始。装配就是倒过来做一遍。':STEPS[i].d;if(viewer)viewer.retarget();if(i>=0&&viewer)viewer.select(STEPS[i].parts[0]);}
 
 const partInfo=document.getElementById('partinfo');
 function showInfo(id){const key=id==='seal_l'||id==='seal_r'?'seal':id;const m=META[key];if(!m)return;
   partInfo.innerHTML=`<div class="eyebrow">当前零件 · 序号 ${m.no}</div><p class="pn">${m.name}${m.draw?'<span class="pill drw">画零件图</span>':m.std?'<span class="pill std">标准件</span>':''}</p>
   <dl class="kv"><dt>数量</dt><dd>${m.qty}</dd><dt>材料</dt><dd>${m.mat}</dd>${m.note?`<dt>说明</dt><dd>${m.note}</dd>`:''}</dl>
-  ${m.draw?`<p style="margin-top:10px"><button class="btn" id="goDraw">看它的草图</button></p>`:''}`;
-  const g=document.getElementById('goDraw');if(g)g.onclick=()=>showPart(key,true);}
+  <p style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="goIso">单独看它</button>${m.draw?'<button class="btn" id="goDraw">看它的草图</button>':''}</p>`;
+  const g=document.getElementById('goDraw');if(g)g.onclick=()=>showPart(key,true);
+  document.getElementById('goIso').onclick=()=>{if(viewer)viewer.isolate(id);};}
 
 let viewer=null;
 function initViewer(){
@@ -954,7 +958,8 @@ function initViewer(){
   new ResizeObserver(resize).observe(stage);resize();
   const ray=new THREE.Raycaster(),mv=new THREE.Vector2(),tip=document.getElementById('tip');
   function pick(e){const r=renderer.domElement.getBoundingClientRect();mv.x=(e.clientX-r.left)/r.width*2-1;mv.y=-(e.clientY-r.top)/r.height*2+1;ray.setFromCamera(mv,cam);
-    const hits=ray.intersectObjects(scene.children,true).filter(h=>h.object.isMesh&&h.object.visible&&h.object.userData.pid&&(!clipOn||h.object.userData.cap||h.point.z<=0.01));return hits.length?hits[0].object.userData.pid:null;}
+    const vis=o=>{for(;o;o=o.parent)if(!o.visible)return false;return true;};
+    const hits=ray.intersectObjects(scene.children,true).filter(h=>h.object.isMesh&&vis(h.object)&&h.object.userData.pid&&(!clipOn||h.object.userData.cap||h.point.z<=0.01));return hits.length?hits[0].object.userData.pid:null;}
   let down=null;
   renderer.domElement.addEventListener('pointerdown',e=>{down=[e.clientX,e.clientY];});
   renderer.domElement.addEventListener('pointerup',e=>{if(down&&Math.hypot(e.clientX-down[0],e.clientY-down[1])<5){select(pick(e));}down=null;});
@@ -964,11 +969,28 @@ function initViewer(){
   document.getElementById('btnClip').addEventListener('click',e=>{clipOn=!clipOn;e.currentTarget.setAttribute('aria-pressed',clipOn);clipMats.forEach(m=>{m.clippingPlanes=clipOn?[clip]:[];m.needsUpdate=true;});caps.forEach(c=>c.visible=clipOn);});
   document.getElementById('btnEdge').addEventListener('click',e=>{const on=e.currentTarget.getAttribute('aria-pressed')!=='true';e.currentTarget.setAttribute('aria-pressed',on);edgeObjs.forEach(o=>o.visible=on);});
   document.getElementById('btnSpin').addEventListener('click',e=>{spin=!spin;ctl.autoRotate=spin;ctl.autoRotateSpeed=1.2;e.currentTarget.setAttribute('aria-pressed',spin);});
-  document.getElementById('btnReset').addEventListener('click',()=>{explode=0;document.getElementById('explode').value=0;setStep(-1);select(null);partInfo.innerHTML='<div class="eyebrow">当前零件</div><p class="pn">点模型上的零件</p>';});
+  document.getElementById('btnReset').addEventListener('click',()=>{isolate(null);explode=0;document.getElementById('explode').value=0;setStep(-1);select(null);partInfo.innerHTML='<div class="eyebrow">当前零件</div><p class="pn">点模型上的零件</p>';});
+  /* ---- 单独查看：只留一个零件，回到装配位置，镜头飞过去对准它 ---- */
+  const isoBar=document.getElementById('isobar'),home={pos:cam.position.clone(),tgt:ctl.target.clone()};
+  const ISO=[['','整体'],['body','阀体'],['cover','阀盖'],['seal_l','密封圈'],['ball','阀芯'],['stem','阀杆'],['gland','压紧套'],['packing','填料'],['wrench','扳手'],['bolts','螺栓']];
+  let iso=null,anim=null;
+  function flyTo(t1,p1){anim={t:0,p0:cam.position.clone(),t0:ctl.target.clone(),p1,t1};}
+  function isolate(id){iso=id||null;
+    ids.forEach(i=>parts[i].visible=!iso||i===iso);
+    isoBar.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.id===(iso||'')?'true':'false'));
+    if(!iso){flyTo(home.tgt.clone(),home.pos.clone());return;}
+    cur[iso]=0;parts[iso].position.set(0,0,0);parts[iso].updateMatrixWorld(true);
+    const box=new THREE.Box3().setFromObject(parts[iso]),c=box.getCenter(new THREE.Vector3()),sz=box.getSize(new THREE.Vector3()).length();
+    const dir=cam.position.clone().sub(ctl.target).normalize(),dist=sz/(2*Math.tan(cam.fov*Math.PI/360))*1.3+25;
+    flyTo(c,c.clone().add(dir.multiplyScalar(dist)));select(iso);}
+  ISO.forEach(([id,n])=>{const b=document.createElement('button');b.className='btn';b.dataset.id=id;b.textContent=n;b.setAttribute('aria-pressed',id?'false':'true');b.onclick=()=>isolate(id);isoBar.appendChild(b);});
+  renderer.domElement.addEventListener('dblclick',e=>{const id=pick(e);if(id)isolate(id===iso?null:id);});
   const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
-  (function loop(){ids.forEach(i=>{cur[i]+=reduce?(tgt[i]-cur[i]):(tgt[i]-cur[i])*.12;const u=parts[i].userData;parts[i].position.copy(u.dir).multiplyScalar(u.dist*cur[i]);});
+  (function loop(){
+    if(anim){anim.t=Math.min(1,anim.t+(reduce?1:.05));const k=1-Math.pow(1-anim.t,3);cam.position.lerpVectors(anim.p0,anim.p1,k);ctl.target.lerpVectors(anim.t0,anim.t1,k);if(anim.t>=1)anim=null;}
+    ids.forEach(i=>{const T=iso?0:tgt[i];cur[i]+=reduce?(T-cur[i]):(T-cur[i])*.12;const u=parts[i].userData;parts[i].position.copy(u.dir).multiplyScalar(u.dist*cur[i]);});
     ctl.update();renderer.render(scene,cam);requestAnimationFrame(loop);})();
-  viewer={retarget,select};
+  viewer={retarget,select,isolate,isIso:()=>!!iso};
 }
 try{initViewer();}catch(e){const m=document.createElement('div');m.className='stage-msg';m.textContent='三维模型初始化失败：'+e.message;document.getElementById('stage').appendChild(m);}
 })();
