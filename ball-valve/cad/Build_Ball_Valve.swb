@@ -1,0 +1,228 @@
+' ============================================================================
+'  Ball valve assembly builder for SolidWorks
+'
+'  How to use: keep this file next to the "step" folder, then in SolidWorks
+'  choose  Tools > Macro > Run  (工具 > 宏 > 运行), set the file type to
+'  "SW VBA Macros (*.swb)" and open this file.
+'
+'  What it does:
+'    1. Imports every STEP part in .\step\ and saves it as .SLDPRT in
+'       .\solidworks\ (with a colour).
+'    2. Builds .\solidworks\QF-00_Ball_Valve.SLDASM with all parts in place.
+'    3. Fixes the stationary parts and mates the stem, ball and wrench so they
+'       turn together about the stem axis, limited to 90 degrees.
+'       Drag the wrench handle to open / close the valve.
+'
+'  Every part is modelled in the assembly frame (origin = ball centre,
+'  +X = flow direction, +Y = stem axis), so most parts just sit at the origin.
+'  Reference planes are found by feature type, so localized (Chinese) plane
+'  names do not matter.
+' ============================================================================
+Dim swApp As Object
+Dim mdl As Object
+Dim assy As Object
+Dim outDir As String
+Dim fails As String
+
+Const MATE_COINCIDENT = 0
+Const MATE_ANGLE = 6
+Const ALIGN_CLOSEST = 2
+Const PI = 3.14159265358979
+
+Sub main()
+    Set swApp = Application.SldWorks
+    Dim macroPath As String
+    macroPath = swApp.GetCurrentMacroPathName
+    Dim baseDir As String
+    baseDir = Left(macroPath, InStrRev(macroPath, "\"))
+    Dim stepDir As String
+    stepDir = baseDir & "step\"
+    outDir = baseDir & "solidworks\"
+    If Dir(outDir, vbDirectory) = "" Then MkDir outDir
+    fails = ""
+
+    ' ---- 1. STEP -> SLDPRT ------------------------------------------------
+    If Not ImportPart(stepDir, "QF-01_Body", 0.18, 0.47, 0.8) Then Exit Sub
+    If Not ImportPart(stepDir, "QF-02_Cover", 0.8, 0.82, 0.84) Then Exit Sub
+    If Not ImportPart(stepDir, "QF-03_Seal", 0.95, 0.94, 0.9) Then Exit Sub
+    If Not ImportPart(stepDir, "QF-04_Ball", 0.86, 0.87, 0.89) Then Exit Sub
+    If Not ImportPart(stepDir, "QF-05_Bolt_M8x25", 0.7, 0.72, 0.75) Then Exit Sub
+    If Not ImportPart(stepDir, "QF-06_Packing", 0.36, 0.38, 0.4) Then Exit Sub
+    If Not ImportPart(stepDir, "QF-07_Gland", 0.8, 0.82, 0.84) Then Exit Sub
+    If Not ImportPart(stepDir, "QF-08_Stem", 0.86, 0.87, 0.89) Then Exit Sub
+    If Not ImportPart(stepDir, "QF-09_Wrench", 0.18, 0.47, 0.8) Then Exit Sub
+
+    ' ---- 2. new assembly ---------------------------------------------------
+    Dim tmpl As String
+    tmpl = swApp.GetUserPreferenceStringValue(9)          ' swDefaultTemplateAssembly
+    Set mdl = swApp.NewDocument(tmpl, 0, 0, 0)
+    If mdl Is Nothing Then
+        MsgBox "Could not create a new assembly. Check Tools > Options > Default Templates."
+        Exit Sub
+    End If
+    Set assy = mdl
+
+    Dim cBody As Object, cCover As Object, cSealL As Object, cSealR As Object
+    Dim cPack As Object, cGland As Object, cBall As Object, cStem As Object, cWrench As Object
+    Dim cB1 As Object, cB2 As Object, cB3 As Object, cB4 As Object
+
+    Set cBody = AddAt("QF-01_Body", 1, 0, 0, 0)
+    Set cCover = AddAt("QF-02_Cover", 1, 0, 0, 0)
+    Set cSealL = AddAt("QF-03_Seal", 1, 0, 0, 0)
+    Set cSealR = AddAt("QF-03_Seal", -1, 0, 0, 0)          ' rotated 180 deg about Y
+    Set cPack = AddAt("QF-06_Packing", 1, 0, 0, 0)
+    Set cGland = AddAt("QF-07_Gland", 1, 0, 0, 0)
+    Set cB1 = AddAt("QF-05_Bolt_M8x25", 1, -40.15, 26.5, 26.5)
+    Set cB2 = AddAt("QF-05_Bolt_M8x25", 1, -40.15, -26.5, 26.5)
+    Set cB3 = AddAt("QF-05_Bolt_M8x25", 1, -40.15, 26.5, -26.5)
+    Set cB4 = AddAt("QF-05_Bolt_M8x25", 1, -40.15, -26.5, -26.5)
+    Set cBall = AddAt("QF-04_Ball", 1, 0, 0, 0)
+    Set cStem = AddAt("QF-08_Stem", 1, 0, 0, 0)
+    Set cWrench = AddAt("QF-09_Wrench", 1, 0, 0, 0)
+
+    ' stationary parts are fixed in place
+    FixComp cBody: FixComp cCover: FixComp cSealL: FixComp cSealR
+    FixComp cPack: FixComp cGland
+    FixComp cB1: FixComp cB2: FixComp cB3: FixComp cB4
+
+    ' ---- 3. mates for the rotating group -----------------------------------
+    Dim aOrigin As Object, aFront As Object, aTop As Object, aRight As Object
+    Set aOrigin = FindFeat(mdl.FirstFeature, "OriginProfileFeature", 0)
+    Set aFront = FindFeat(mdl.FirstFeature, "RefPlane", 0)
+    Set aTop = FindFeat(mdl.FirstFeature, "RefPlane", 1)
+    Set aRight = FindFeat(mdl.FirstFeature, "RefPlane", 2)
+
+    Dim comps(2) As Object
+    Set comps(0) = cStem: Set comps(1) = cBall: Set comps(2) = cWrench
+    Dim i As Integer
+    For i = 0 To 2
+        ' origin on origin + top plane on top plane = only rotation about the stem (Y) axis is left
+        DoMate FindFeat(comps(i).FirstFeature, "OriginProfileFeature", 0), aOrigin, MATE_COINCIDENT, 0, 0, 0, "origin " & comps(i).Name2
+        DoMate FindFeat(comps(i).FirstFeature, "RefPlane", 1), aTop, MATE_COINCIDENT, 0, 0, 0, "top plane " & comps(i).Name2
+    Next i
+    ' lock stem and ball to the wrench (front planes coincident) so all three turn together
+    DoMate FindFeat(cStem.FirstFeature, "RefPlane", 0), FindFeat(cWrench.FirstFeature, "RefPlane", 0), MATE_COINCIDENT, 0, 0, 0, "stem-wrench"
+    DoMate FindFeat(cBall.FirstFeature, "RefPlane", 0), FindFeat(cWrench.FirstFeature, "RefPlane", 0), MATE_COINCIDENT, 0, 0, 0, "ball-wrench"
+    ' 90 degree travel: angle between the wrench front plane and the assembly right plane
+    ' is 90 deg when open and 180 deg when closed (limit angle mate)
+    DoMate FindFeat(cWrench.FirstFeature, "RefPlane", 0), aRight, MATE_ANGLE, PI / 2, PI / 2, PI, "limit angle 90-180"
+
+    mdl.EditRebuild3
+    mdl.ShowNamedView2 "", 7                                 ' isometric
+    mdl.ViewZoomtofit2
+
+    Dim e As Long, w As Long
+    mdl.Extension.SaveAs outDir & "QF-00_Ball_Valve.SLDASM", 0, 1, Nothing, e, w
+
+    If fails = "" Then
+        MsgBox "Done. Saved in " & outDir & vbCrLf & vbCrLf & _
+               "Drag the wrench handle to turn the valve between open and closed (90 deg)."
+    Else
+        MsgBox "Assembly built, but these mates could not be created:" & vbCrLf & fails & vbCrLf & _
+               "See README (manual mate steps) to add them by hand."
+    End If
+End Sub
+
+' Import STEP, colour it, save as SLDPRT (re-opens the SLDPRT if it already exists).
+Function ImportPart(stepDir As String, nm As String, r As Double, g As Double, b As Double) As Boolean
+    Dim e As Long, w As Long
+    Dim doc As Object
+    Dim prt As String
+    prt = outDir & nm & ".SLDPRT"
+    If Dir(prt) <> "" Then
+        Set doc = swApp.OpenDoc6(prt, 1, 1, "", e, w)
+    Else
+        If Dir(stepDir & nm & ".step") = "" Then
+            MsgBox "Missing file: " & stepDir & nm & ".step"
+            ImportPart = False
+            Exit Function
+        End If
+        Set doc = swApp.LoadFile4(stepDir & nm & ".step", "r", Nothing, e)
+        If doc Is Nothing Then
+            MsgBox "Could not import " & nm & ".step (error " & e & ")"
+            ImportPart = False
+            Exit Function
+        End If
+        Dim mp As Variant
+        mp = doc.MaterialPropertyValues
+        If Not IsEmpty(mp) Then
+            mp(0) = r: mp(1) = g: mp(2) = b
+            doc.MaterialPropertyValues = mp
+        End If
+        doc.Extension.SaveAs prt, 0, 1, Nothing, e, w
+    End If
+    ImportPart = Not (doc Is Nothing)
+End Function
+
+' Insert a part with its origin at (x, y, z) mm. flip = -1 rotates it 180 deg about Y.
+Function AddAt(nm As String, flip As Integer, x As Double, y As Double, z As Double) As Object
+    Dim c As Object
+    Set c = assy.AddComponent5(outDir & nm & ".SLDPRT", 0, "", False, "", 0, 0, 0)
+    If c Is Nothing Then
+        fails = fails & "insert " & nm & vbCrLf
+        Set AddAt = Nothing
+        Exit Function
+    End If
+    Dim d(15) As Double
+    d(0) = flip: d(4) = 1: d(8) = flip
+    d(9) = x / 1000: d(10) = y / 1000: d(11) = z / 1000
+    d(12) = 1
+    Dim v As Variant
+    v = d
+    Dim xf As Object
+    Set xf = swApp.GetMathUtility.CreateTransform(v)
+    mdl.ClearSelection2 True
+    c.Select4 False, Nothing, False
+    assy.UnfixComponent
+    c.SetTransformAndSolve2 xf
+    mdl.ClearSelection2 True
+    Set AddAt = c
+End Function
+
+Sub FixComp(c As Object)
+    If c Is Nothing Then Exit Sub
+    mdl.ClearSelection2 True
+    c.Select4 False, Nothing, False
+    assy.FixComponent
+    mdl.ClearSelection2 True
+End Sub
+
+' n-th feature of a given type (0-based): RefPlane 0/1/2 = Front/Top/Right, OriginProfileFeature = origin
+Function FindFeat(first As Object, typeName As String, n As Integer) As Object
+    Dim f As Object
+    Dim k As Integer
+    k = 0
+    Set f = first
+    Do While Not f Is Nothing
+        If f.GetTypeName2 = typeName Then
+            If k = n Then
+                Set FindFeat = f
+                Exit Function
+            End If
+            k = k + 1
+        End If
+        Set f = f.GetNextFeature
+    Loop
+    Set FindFeat = Nothing
+End Function
+
+Sub DoMate(f1 As Object, f2 As Object, mType As Long, ang As Double, lo As Double, hi As Double, label As String)
+    Dim e As Long
+    Dim m As Object
+    If f1 Is Nothing Or f2 Is Nothing Then
+        fails = fails & label & " (reference not found)" & vbCrLf
+        Exit Sub
+    End If
+    mdl.ClearSelection2 True
+    f1.Select2 False, 1
+    f2.Select2 True, 1
+    On Error Resume Next
+    Set m = assy.AddMate5(mType, ALIGN_CLOSEST, False, 0, 0, 0, 1, 1, ang, hi, lo, False, False, 0, e)
+    If m Is Nothing Then
+        Err.Clear
+        Set m = assy.AddMate3(mType, ALIGN_CLOSEST, False, 0, 0, 0, 1, 1, ang, hi, lo, False, e)
+    End If
+    On Error GoTo 0
+    If m Is Nothing Then fails = fails & label & vbCrLf
+    mdl.ClearSelection2 True
+End Sub
