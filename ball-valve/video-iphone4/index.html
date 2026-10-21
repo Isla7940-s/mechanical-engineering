@@ -1,0 +1,330 @@
+<title>球阀（1）· 再次改变一切</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@200;300;400;500&display=swap">
+<style>
+/* 2010 年那种产品片：白色无缝影棚，产品带倒影慢慢转，字很细很少。中间切一段黑场“还有一件事”。 */
+:root{
+  --studio:#f5f5f7; --ink:#1d1d1f; --mute:#6e6e73; --line:#86868b; --accent:#0071e3; --night:#000;
+  --f:"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+  color-scheme:light;
+}
+html,body{height:100%}
+body{background:#000;color:var(--ink);font-family:var(--f);margin:0;overflow:hidden;display:grid;place-items:center}
+#frame{position:relative;width:min(100vw,177.78vh);aspect-ratio:16/9;max-width:100%;overflow:hidden;background:var(--studio)}
+#stage{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0}
+#stage>*{position:absolute;inset:0}
+[hidden]{display:none!important}
+#bg{background:var(--studio)}
+#gl{opacity:0}
+#gl canvas{width:1920px!important;height:1080px!important;display:block}
+.ov{pointer-events:none}
+.txt{opacity:0}
+/* 字：一个细的大标题，一行灰色小字，偶尔一个蓝色小眉题 */
+.eb{font-size:24px;font-weight:400;color:var(--accent);letter-spacing:.08em}
+.hd{font-size:84px;font-weight:200;letter-spacing:.01em;line-height:1.15;color:var(--ink)}
+.sb{font-size:30px;font-weight:300;color:var(--mute);line-height:1.55}
+.ctr{display:grid;place-content:center;justify-items:center;text-align:center;gap:22px}
+.top{display:grid;align-content:start;justify-items:center;text-align:center;gap:14px;padding-top:96px}
+.left{display:grid;align-content:center;justify-items:start;gap:18px;padding-left:130px;max-width:820px}
+.left .hd{font-size:76px}
+#open .hd{font-size:96px}
+#hero .hd,#end .hd{font-size:120px;font-weight:200}
+#dim{display:block}
+#dim .num{position:absolute;left:1110px;top:400px;font-size:170px;font-weight:200;line-height:1;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+#dim .num small{font-size:72px;margin-left:14px;color:var(--mute)}
+#dim .sb{position:absolute;left:1118px;top:610px}
+#turn .hd{opacity:0}
+#omt .hd{color:#f5f5f7;font-size:92px}
+#hands{display:block}
+#hands img{position:absolute;left:0;top:0;width:1060px;height:1080px;object-fit:cover;opacity:.92}
+#hands .fade{position:absolute;left:660px;top:0;width:420px;height:1080px;background:linear-gradient(90deg,transparent,#000)}
+#hands .cap{position:absolute;left:1150px;top:0;bottom:0;width:640px;display:grid;align-content:center;gap:26px}
+#hands .hd{color:#f5f5f7;font-size:68px;line-height:1.3}
+#hands .sb{color:#a1a1a6;font-size:28px;font-variant-numeric:tabular-nums}
+svg#ov{overflow:visible}
+.co line,.co polyline{fill:none;stroke:var(--line);stroke-width:1.4}
+.co circle{fill:var(--ink)}
+.co text{font-family:var(--f);font-size:26px;font-weight:300;fill:var(--ink)}
+.dm{fill:none;stroke:var(--ink);stroke-width:1.6}
+.dmx{fill:none;stroke:var(--line);stroke-width:1.2}
+.ah{fill:var(--ink)}
+#loading{display:grid;place-content:end center;padding-bottom:80px;font-size:22px;font-weight:300;color:var(--mute);letter-spacing:.12em}
+#bar{position:absolute;left:0;right:0;bottom:0;padding:14px max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;align-items:center;gap:14px;background:linear-gradient(transparent,rgba(0,0,0,.55));opacity:0;transition:opacity .35s;z-index:5}
+#frame:hover #bar,#bar:focus-within,#frame.paused #bar{opacity:1}
+#bar button{font:inherit;font-size:14px;color:#fff;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:6px 14px;cursor:pointer}
+#bar button:hover{background:rgba(255,255,255,.26)}
+#bar button:focus-visible,#seek:focus-visible{outline:2px solid #fff;outline-offset:2px}
+#seek{flex:1;min-width:0;accent-color:#fff}
+#time{font-size:13px;color:#fff;white-space:nowrap;font-variant-numeric:tabular-nums}
+#big{position:absolute;inset:0;display:grid;place-items:center;z-index:4;background:rgba(245,245,247,.55);border:0;color:var(--ink);font:inherit;cursor:pointer}
+#big span{display:grid;place-items:center;width:110px;height:110px;border-radius:50%;background:rgba(29,29,31,.82);color:#fff;font-size:34px;padding-left:8px}
+</style>
+
+<div id="frame" class="paused">
+  <div id="stage">
+    <div id="bg"></div>
+    <div id="gl" class="ov"></div>
+    <svg id="ov" class="ov" viewBox="0 0 1920 1080" width="1920" height="1080" aria-hidden="true">
+      <defs><marker id="ah" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="16" markerHeight="16" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,2 L10,5 L0,8 z" class="ah"/></marker></defs>
+      <g id="callouts"></g>
+      <g id="dimg" opacity="0"><line id="dx1" class="dmx"/><line id="dx2" class="dmx"/><line id="dl" class="dm" pathLength="1" marker-start="url(#ah)" marker-end="url(#ah)"/></g>
+    </svg>
+    <div id="open" class="ov ctr txt"><div class="hd" id="o1">这将再次改变一切。</div><div class="sb" id="o2">至少，改变了我们的课程设计。</div></div>
+    <div id="hero" class="ov top txt"><div class="hd">球阀（1）</div><div class="sb">机械制图课程设计 · 零部件测绘</div></div>
+    <div id="d1" class="ov left txt"><div class="eb">扳手</div><div class="hd">一块 8.4 mm 的钢板。</div><div class="sb">弯两道，155°。长 151，根部 26 宽，末端收到 15.04。</div></div>
+    <div id="d2" class="ov left txt"><div class="eb">阀盖 · 螺栓</div><div class="hd">一圈止口，<br>四颗 M8。</div><div class="sb">Ø50 止口定位，四颗螺栓把阀盖和阀体拉紧，两片密封圈把阀芯夹在中间。</div></div>
+    <div id="parts" class="ov top txt"><div class="hd">9 个零件。0 干涉。</div><div class="sb">装配位置下两两求交，干涉体积都是 0 mm³。</div></div>
+    <div id="dim" class="ov txt"><div class="num" id="dnum">0<small>mm</small></div><div class="sb">从阀盖端面，到阀体端面。</div></div>
+    <div id="turn" class="ov left txt"><div class="hd" id="u1">切开看。</div><div class="hd" id="u2">转动 90°。</div><div class="hd" id="u3">关。</div></div>
+    <div id="omt" class="ov ctr txt"><div class="hd">还有一件事……</div></div>
+    <div id="hands" class="ov txt"><img src="img/cover_caliper.jpg" alt="用游标卡尺测量阀盖"><div class="fade"></div>
+      <div class="cap"><div class="hd">每一个尺寸，<br>都是卡尺一下一下<br>量出来的。</div><div class="sb">SØ41 · Ø20 · 85 · 77.5 · 61.28 · 15.04 · 155°</div></div></div>
+    <div id="end" class="ov top txt"><div class="hd">球阀（1）</div><div class="sb" id="e2">这将再次改变一切。</div><div class="eb" id="e3">机械制图课程设计 · 零部件测绘</div></div>
+    <div id="loading" class="ov">正在载入三维模型 0 / 9</div>
+  </div>
+  <button id="big" aria-label="播放"><span>▶</span></button>
+  <div id="bar">
+    <button id="pp" aria-label="暂停">暂停</button>
+    <button id="rs">重播</button>
+    <input id="seek" type="range" min="0" max="62" step="0.01" value="0" aria-label="进度">
+    <span id="time">00:00 / 01:02</span>
+    <button id="fs">全屏</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js"></script>
+<script src="models.js"></script>
+<script>
+(function(){
+"use strict";
+const DUR=62;
+const $=id=>document.getElementById(id);
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const seg=(t,a,b)=>clamp((t-a)/(b-a),0,1);
+const ease=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;
+const sine=x=>.5-.5*Math.cos(Math.PI*x);
+const eo=x=>1-Math.pow(1-x,3);
+const win=(t,a,b,fi,fo)=>Math.min(seg(t,a,a+(fi||.8)),1-seg(t,b-(fo||.8),b));
+const lerp=(a,b,k)=>a+(b-a)*k;
+
+const frame=$('frame'),stage=$('stage');
+function fit(){const s=frame.clientWidth/1920;stage.style.transform=`scale(${s})`;}
+new ResizeObserver(fit).observe(frame);fit();
+
+/* ---------- 镜头：每段一个机位，段内慢推慢摇，段与段之间硬切 ---------- */
+const SHOTS=[
+  [4.6,12.2,{tx:-24,ty:18,az:-64,el:5,d:340,fov:24},{tx:20,ty:68,az:26,el:13,d:760,fov:24}],
+  [12.2,16.8,{tx:66,ty:80,az:26,el:34,d:250,fov:22,sx:-92},{tx:78,ty:82,az:48,el:27,d:270,fov:22,sx:-92}],
+  [16.8,21.4,{tx:-34,ty:4,az:-60,el:12,d:250,fov:22,sx:-40},{tx:-28,ty:2,az:-36,el:8,d:270,fov:22,sx:-40}],
+  [21.4,31.6,{tx:-20,ty:92,az:22,el:16,d:830,fov:26},{tx:-20,ty:92,az:42,el:15,d:850,fov:26}],
+  [31.6,38.6,{tx:48,ty:14,az:0,el:0,d:960,fov:12},{tx:48,ty:14,az:0,el:0,d:930,fov:12}],
+  [38.6,47.2,{tx:-18,ty:24,az:18,el:18,d:470,fov:26},{tx:-18,ty:24,az:10,el:16,d:430,fov:26}],
+  [53.8,62,{tx:40,ty:40,az:-38,el:11,d:900,fov:22},{tx:40,ty:40,az:8,el:11,d:900,fov:22}]];
+const CUTS=[12.2,16.8,21.4,31.6,38.6];
+function camAt(t){
+  let s=SHOTS[0];for(const x of SHOTS)if(t>=x[0])s=x;
+  const k=sine(seg(t,s[0],s[1])),o={sx:0};for(const n in s[2])o[n]=lerp(s[2][n],s[3][n],k);return o;}
+
+/* 爆炸方向（mm）和标注：锚点用零件自己的坐标，跟着零件走 */
+const EXP={cover:[-105,0,0],sealL:[-72,0,0],sealR:[72,0,0],ball:[-40,0,0],stem:[0,34,0],pack:[0,60,0],gland:[0,82,0],wrench:[0,108,0],b1:[-132,0,0],b2:[-132,0,0],b3:[-132,0,0],b4:[-132,0,0]};
+const CALL=[['wrench','扳手',[110,88,0],60,-60],['gland','压紧套',[-12,52,6],-150,-24],['pack','填料',[10.75,42,3],150,-10],['stem','阀杆',[7,24,0],130,40],
+  ['cover','阀盖',[-58,19,8],-40,-150],['b4','螺栓 M8 ×4',[-6,0,0],-70,140],['sealL','密封圈',[-17,17,6],-40,-130],['ball','阀芯 SØ41',[0,-12,16],10,170],
+  ['sealR','密封圈',[18,17,6],60,-120],['body','阀体',[36,-18,12],80,150]];
+const NS='http://www.w3.org/2000/svg';
+const callG=$('callouts');
+const callEls=CALL.map(c=>{const g=document.createElementNS(NS,'g');g.setAttribute('class','co');g.setAttribute('opacity','0');
+  g.innerHTML=`<circle r="4"/><polyline/><text dy="9"></text>`;g.querySelector('text').textContent=c[1];callG.appendChild(g);return g;});
+
+/* ---------- 三维 ---------- */
+const F=-38.8;  /* 地面：阀体法兰底边 */
+let three=null;
+function initThree(onProgress){
+  return new Promise(resolve=>{
+  if(!window.THREE||!THREE.GLTFLoader){resolve(null);return;}
+  const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,stencil:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));renderer.setSize(1920,1080,false);
+  renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
+  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.localClippingEnabled=true;renderer.setClearColor(0,0);renderer.autoClear=false;
+  $('gl').appendChild(renderer.domElement);
+  const scene=new THREE.Scene();
+  if(THREE.RoomEnvironment){const pm=new THREE.PMREMGenerator(renderer);scene.environment=pm.fromScene(new THREE.RoomEnvironment(),.04).texture;}
+  scene.add(new THREE.HemisphereLight(0xffffff,0xd8dadf,.5));
+  const key=new THREE.DirectionalLight(0xffffff,1.1);key.position.set(80,420,160);key.castShadow=true;key.shadow.mapSize.set(2048,2048);key.shadow.bias=-.0004;key.shadow.radius=6;
+  Object.assign(key.shadow.camera,{left:-300,right:300,top:300,bottom:-300,near:20,far:1200});scene.add(key);
+  const fill=new THREE.DirectionalLight(0xffffff,.35);fill.position.set(-260,140,240);scene.add(fill);
+  const ground=new THREE.Mesh(new THREE.PlaneGeometry(4000,4000),new THREE.ShadowMaterial({opacity:.16}));ground.rotation.x=-Math.PI/2;ground.position.y=F;ground.receiveShadow=true;scene.add(ground);
+  /* 倒影：先把整台阀门以地面为镜画一遍，再盖一层和背景同色、中间半透明的地板，最后画正身 */
+  const floorScene=new THREE.Scene();
+  const floorMat=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,
+    uniforms:{col:{value:new THREE.Vector3(245/255,245/255,247/255)},amt:{value:1},ctr:{value:new THREE.Vector2(20,0)}},
+    vertexShader:'varying vec3 wp;void main(){vec4 w=modelMatrix*vec4(position,1.);wp=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}',
+    fragmentShader:'uniform vec3 col;uniform float amt;uniform vec2 ctr;varying vec3 wp;void main(){float r=length(wp.xz-ctr);float a=mix(.72,1.,smoothstep(30.,240.,r));gl_FragColor=vec4(col,mix(1.,a,amt));}'});
+  const floor=new THREE.Mesh(new THREE.PlaneGeometry(6000,6000),floorMat);floor.rotation.x=-Math.PI/2;floor.position.y=F;floorScene.add(floor);
+  const cam=new THREE.PerspectiveCamera(24,1920/1080,5,6000);
+  const clip=new THREE.Plane(new THREE.Vector3(0,0,-1),0);
+  const C=c=>new THREE.Color(c).convertSRGBToLinear();
+  const MK={paint:()=>new THREE.MeshPhysicalMaterial({color:C(0x2f7fd6),roughness:.32,metalness:0,clearcoat:.7,clearcoatRoughness:.12}),
+    alu:()=>new THREE.MeshStandardMaterial({color:C(0xd6dade),roughness:.24,metalness:.92}),
+    steel:()=>new THREE.MeshStandardMaterial({color:C(0xeceef0),roughness:.1,metalness:1}),
+    zinc:()=>new THREE.MeshStandardMaterial({color:C(0xc8cdd2),roughness:.3,metalness:.88}),
+    ptfe:()=>new THREE.MeshStandardMaterial({color:C(0xf7f6f1),roughness:.5}),
+    yel:()=>new THREE.MeshStandardMaterial({color:C(0xebe3a2),roughness:.5}),
+    pack:()=>new THREE.MeshStandardMaterial({color:C(0x5a5f63),roughness:.85,metalness:.1})};
+  function hatch(base,line,flip,cross){const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');x.fillStyle=base;x.fillRect(0,0,64,64);x.strokeStyle=line;x.lineWidth=3;
+    const L=(a,b,c2,d)=>{x.beginPath();x.moveTo(a,b);x.lineTo(c2,d);x.stroke();};
+    [-64,0,64].forEach(o=>flip?L(o,0,o+64,64):L(o,64,o+64,0));if(cross)[-64,0,64].forEach(o=>L(o,0,o+64,64));
+    const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(600/2.8,600/2.8);t.encoding=THREE.sRGBEncoding;return t;}
+  const CAP={body:['#2f7fd6','#cfe3ff',false],cover:['#c7ced5','#3b4650',true],seal:['#f4f3ed','#8a8878',false,true],ball:['#e2e6ea','#3b4650',false],
+    pack:['#6b7175','#2d3236',false,true],gland:['#c7ced5','#3b4650',true],stem:['#e2e6ea','#3b4650',true],wrench:['#2f7fd6','#cfe3ff',true],bolt:['#c2c8ce','#3b4650',false]};
+  const loader=new THREE.GLTFLoader(),root=new THREE.Group(),grp=new THREE.Group();scene.add(root);root.add(grp);
+  const parts={},stencilObjs=[],caps=[],mains=[];let order=1,loaded=0;
+  const LIST=[['body','QF-01_Body','paint'],['cover','QF-02_Cover','alu'],['sealL','QF-03_Seal','ptfe'],['sealR','QF-03_Seal','yel'],['ball','QF-04_Ball','steel'],
+    ['pack','QF-06_Packing','pack'],['gland','QF-07_Gland','alu'],['stem','QF-08_Stem','steel'],['wrench','QF-09_Wrench','paint'],
+    ['b1','QF-05_Bolt_M8x25','zinc'],['b2','QF-05_Bolt_M8x25','zinc'],['b3','QF-05_Bolt_M8x25','zinc'],['b4','QF-05_Bolt_M8x25','zinc']];
+  const files=[...new Set(LIST.map(l=>l[1]))];const cache={};
+  /* 剖切时每个零件一组模板缓冲：背面 +1、正面 −1，非零处就是切面，用铺了剖面线的平面盖上 */
+  function addPart(id,file,kind,capKey){
+    const mat=MK[kind]();const s=cache[file].clone(true);const g=new THREE.Group();s.rotation.x=Math.PI/2;g.add(s);
+    const base={depthWrite:false,depthTest:false,colorWrite:false,stencilWrite:true,stencilFunc:THREE.AlwaysStencilFunc,clippingPlanes:[clip]};
+    const ro=order;order+=1;
+    const meshes=[];s.traverse(o=>{if(o.isMesh)meshes.push(o);});
+    /* 扳手不切：关阀时它转向镜头，切了就看不见了 */
+    if(id==='wrench'){meshes.forEach(o=>{o.material=mat;o.castShadow=true;o.receiveShadow=true;});parts[id]=g;return g;}
+    meshes.forEach(o=>{o.material=mat;o.castShadow=true;o.receiveShadow=true;o.renderOrder=100;mains.push(mat);
+      const m0=new THREE.MeshBasicMaterial(Object.assign({},base,{side:THREE.BackSide,stencilFail:THREE.IncrementWrapStencilOp,stencilZFail:THREE.IncrementWrapStencilOp,stencilZPass:THREE.IncrementWrapStencilOp}));
+      const m1=new THREE.MeshBasicMaterial(Object.assign({},base,{side:THREE.FrontSide,stencilFail:THREE.DecrementWrapStencilOp,stencilZFail:THREE.DecrementWrapStencilOp,stencilZPass:THREE.DecrementWrapStencilOp}));
+      for(const m of [m0,m1]){const k=new THREE.Mesh(o.geometry,m);k.renderOrder=ro;k.visible=false;o.add(k);stencilObjs.push(k);}});
+    const cs=CAP[capKey];
+    const pm=new THREE.MeshBasicMaterial({map:hatch(cs[0],cs[1],cs[2],cs[3]),toneMapped:false,stencilWrite:true,stencilRef:0,stencilFunc:THREE.NotEqualStencilFunc,
+      stencilFail:THREE.ReplaceStencilOp,stencilZFail:THREE.ReplaceStencilOp,stencilZPass:THREE.ReplaceStencilOp});
+    const cap=new THREE.Mesh(new THREE.PlaneGeometry(600,600),pm);cap.renderOrder=ro+.5;cap.visible=false;cap.onAfterRender=r=>r.clearStencil();scene.add(cap);caps.push(cap);
+    parts[id]=g;return g;}
+  let pending=files.length;
+  const b64=s=>{const bin=atob(s),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u.buffer;};
+  files.forEach((f,i)=>setTimeout(()=>{const src=(window.__GLB||{})[f];if(!src){if(--pending===0)build();return;}
+    loader.parse(b64(src),'',gl=>{cache[f]=gl.scene;loaded++;onProgress(loaded,files.length);if(--pending===0)build();},()=>{if(--pending===0)build();});},i*30));
+  function build(){
+    if(Object.keys(cache).length<files.length){resolve(null);return;}
+    const cap={body:'body',cover:'cover',sealL:'seal',sealR:'seal',ball:'ball',pack:'pack',gland:'gland',stem:'stem',wrench:'wrench'};
+    const B=[[26.5,26.5],[-26.5,26.5],[26.5,-26.5],[-26.5,-26.5]];
+    for(const [id,f,k] of LIST){
+      const g=addPart(id,f,k,cap[id]||'bolt');
+      if(id==='sealR')g.rotation.y=Math.PI;
+      g.userData.home=id[0]==='b'&&id.length===2?new THREE.Vector3(-40.15,B[+id[1]-1][0],B[+id[1]-1][1]):new THREE.Vector3();
+      (['ball','stem','wrench'].includes(id)?grp:root).add(g);}
+    three={renderer,scene,floorScene,floorMat,ground,cam,root,parts,grp,stencilObjs,caps,mains,clip};resolve(three);}
+  });
+}
+
+const v3=()=>new THREE.Vector3();
+function toScreen(p,cam){const v=p.clone().project(cam);return[(v.x+1)*960,(1-v.y)*540];}
+function draw3D(t){
+  const gl=$('gl');
+  let op=t<4.6?0:t<47.2?1:t<53.8?0:1;
+  op*=t<10?seg(t,4.6,6.4):1;                                   /* 开场从白里浮出来 */
+  for(const c of CUTS)op*=clamp(Math.abs(t-c)/.22,0,1);         /* 硬切前后各闪 0.2 s 白 */
+  op*=t<53.8?1-seg(t,46.6,47.2):1;op*=t>=53.8?seg(t,54.2,55.6)*(1-seg(t,61.2,62)):1;
+  gl.style.opacity=op;
+  const cg=$('callouts'),dg=$('dimg');
+  if(!three||op<=0){cg.setAttribute('opacity',0);dg.setAttribute('opacity',0);return;}
+  const {renderer,scene,floorScene,floorMat,ground,cam,root,parts,grp,stencilObjs,caps,mains,clip}=three;
+  /* 爆炸 */
+  const ex=ease(seg(t,22.2,24.8))*(1-ease(seg(t,29.2,31.2)));
+  for(const id in parts){const g=parts[id],h=g.userData.home,v=EXP[id]||[0,0,0];g.position.set(h.x+v[0]*ex,h.y+v[1]*ex,h.z+v[2]*ex);}
+  /* 扳手转 90°（到黑场之后复位成开） */
+  grp.rotation.y=t<53?-Math.PI/2*ease(seg(t,42.6,45.4)):0;
+  /* 剖切：切面从前面慢慢推到中心 */
+  const clipOn=t>=39.2&&t<47.2;
+  clip.constant=lerp(60,0,ease(seg(t,39.4,41.2)));
+  for(const m of mains){if(!!(m.clippingPlanes&&m.clippingPlanes.length)!==clipOn){m.clippingPlanes=clipOn?[clip]:[];m.needsUpdate=true;}}
+  stencilObjs.forEach(o=>o.visible=clipOn);caps.forEach(c=>{c.visible=clipOn;c.position.z=clip.constant;});
+  /* 相机 */
+  const c=camAt(t),az=c.az*Math.PI/180,el=c.el*Math.PI/180;
+  cam.fov=c.fov;cam.updateProjectionMatrix();
+  /* sx：目标点沿画面水平方向挪，负数把产品推到画面右边给字让位 */
+  const gx=c.tx+c.sx*Math.cos(az),gz=-c.sx*Math.sin(az);
+  cam.position.set(gx+c.d*Math.sin(az)*Math.cos(el),c.ty+c.d*Math.sin(el),gz+c.d*Math.cos(az)*Math.cos(el));cam.lookAt(gx,c.ty,gz);cam.updateMatrixWorld();
+  /* 倒影强度：剖切段和正侧面那段关掉 */
+  const mir=t<31.4?1:t<38.6?0:t<53.8?0:1;
+  renderer.clear();
+  if(mir>0){
+    root.scale.y=-1;root.position.y=2*F;ground.visible=false;renderer.shadowMap.autoUpdate=false;
+    renderer.render(scene,cam);
+    root.scale.y=1;root.position.y=0;ground.visible=true;renderer.shadowMap.autoUpdate=true;
+    floorMat.uniforms.amt.value=mir;renderer.render(floorScene,cam);renderer.clearDepth();}
+  renderer.render(scene,cam);
+  /* 零件标注 */
+  const co=win(t,24.6,29.2,.6,.5);cg.setAttribute('opacity',co.toFixed(3));
+  if(co>0)CALL.forEach((cl,i)=>{const g=parts[cl[0]],e=callEls[i];
+    const p=new THREE.Vector3(...cl[2]).add(g.position);const [x,y]=toScreen(p,cam);
+    const k=eo(seg(t,24.6+i*.12,25.4+i*.12)),ex2=x+cl[3]*k,ey=y+cl[4]*k,dir=cl[3]<0?-1:1,hx=ex2+dir*26*k;
+    e.setAttribute('opacity',seg(t,24.6+i*.12,25+i*.12).toFixed(3));
+    e.querySelector('circle').setAttribute('cx',x);e.querySelector('circle').setAttribute('cy',y);
+    e.querySelector('polyline').setAttribute('points',`${x},${y} ${ex2},${ey} ${hx},${ey}`);
+    const tx=e.querySelector('text');tx.setAttribute('x',hx+dir*10);tx.setAttribute('y',ey);tx.setAttribute('text-anchor',dir<0?'end':'start');});
+  /* 总长尺寸线 */
+  const dk=seg(t,32.6,34);dg.setAttribute('opacity',(win(t,32.4,38.4,.4,.6)).toFixed(3));
+  if(t>31.6&&t<38.6){const yb=-26,yd=-62;
+    const a0=toScreen(new THREE.Vector3(-67.46,yb,0),cam),a1=toScreen(new THREE.Vector3(-67.46,yd-6,0),cam);
+    const b0=toScreen(new THREE.Vector3(59,yb,0),cam),b1=toScreen(new THREE.Vector3(59,yd-6,0),cam);
+    const l0=toScreen(new THREE.Vector3(-67.46,yd,0),cam),l1=toScreen(new THREE.Vector3(59,yd,0),cam);
+    const set=(id,p,q)=>{const e=$(id);e.setAttribute('x1',p[0]);e.setAttribute('y1',p[1]);e.setAttribute('x2',q[0]);e.setAttribute('y2',q[1]);};
+    set('dx1',a0,a1);set('dx2',b0,b1);
+    const m=[(l0[0]+l1[0])/2,l0[1]];set('dl',[lerp(m[0],l0[0],dk),m[1]],[lerp(m[0],l1[0],dk),m[1]]);
+    $('dl').style.opacity=dk>0?1:0;}
+}
+
+/* ---------- 文字 ---------- */
+function show(id,o,dy){const e=$(id);e.style.opacity=o;e.style.transform=`translateY(${((1-o)*(dy||16)).toFixed(1)}px)`;}
+function drawText(t){
+  $('open').style.opacity=1-seg(t,4,4.7);
+  const o1=eo(seg(t,.6,2.2));$('o1').style.opacity=o1;$('o1').style.filter=`blur(${(1-o1)*10}px)`;
+  show('o2',seg(t,2.6,3.5));
+  show('hero',win(t,6.6,11.8,1,.8));
+  show('d1',win(t,12.8,16.5,.8,.6));
+  show('d2',win(t,17.4,21.1,.8,.6));
+  show('parts',win(t,22.6,30.6,.8,.8));
+  const dm=win(t,32.6,38.3,.6,.6);$('dim').style.opacity=dm;
+  const n=eo(seg(t,32.8,34.6))*126.5;$('dnum').innerHTML=n.toFixed(1)+'<small>mm</small>';
+  $('turn').style.opacity=1-seg(t,46.4,47.2);
+  show('u1',seg(t,39.8,40.6)*(1-seg(t,41.6,42.2)*.65));
+  show('u2',seg(t,42.4,43.2)*(1-seg(t,44.8,45.4)*.65));
+  show('u3',seg(t,45.2,45.9));
+  $('omt').style.opacity=win(t,48,50.8,.9,.7);
+  const h=win(t,51,53.8,.8,.6);$('hands').style.opacity=h;
+  $('hands').querySelector('img').style.transform=`scale(${lerp(1.04,1.1,seg(t,51,53.8))})`;
+  $('end').style.opacity=seg(t,55,56.2)*(1-seg(t,61.2,62));
+  show('e2',seg(t,56.4,57.4));show('e3',seg(t,57.6,58.6));
+}
+function drawBg(t){
+  const k=seg(t,46.8,47.4)*(1-seg(t,53.4,54.2));   /* 0 白 → 1 黑 */
+  const v=Math.round(lerp(245,0,k)),w=Math.round(lerp(247,0,k));
+  $('bg').style.background=`rgb(${v},${v},${w})`;
+}
+
+/* ---------- 播放控制 ---------- */
+let T=0,playing=false,last=0;
+const seek=$('seek'),time=$('time'),pp=$('pp'),big=$('big');
+const fmt=s=>String(Math.floor(s/60)).padStart(2,'0')+':'+String(Math.floor(s%60)).padStart(2,'0');
+function render(){drawBg(T);drawText(T);draw3D(T);seek.value=T;time.textContent=fmt(T)+' / '+fmt(DUR);}
+function loop(now){if(playing){T+=Math.min(.1,(now-last)/1000);if(T>=DUR){T=DUR;setPlay(false);}}last=now;render();requestAnimationFrame(loop);}
+function setPlay(p){playing=p;frame.classList.toggle('paused',!p);pp.textContent=p?'暂停':'播放';pp.setAttribute('aria-label',p?'暂停':'播放');big.hidden=p;if(p&&T>=DUR)T=0;}
+pp.onclick=()=>setPlay(!playing);big.onclick=()=>setPlay(true);
+$('rs').onclick=()=>{T=0;setPlay(true);};
+seek.addEventListener('input',()=>{T=+seek.value;});
+$('fs').onclick=()=>{const f=frame.requestFullscreen||frame.webkitRequestFullscreen;if(f)f.call(frame).catch(()=>{});};
+document.addEventListener('keydown',e=>{if(e.code==='Space'&&e.target.tagName!=='INPUT'){e.preventDefault();setPlay(!playing);}});
+window.__seek=t=>{T=t;render();};
+
+big.hidden=true;
+T=3.4;render();requestAnimationFrame(loop);   /* 载入期间停在开场那句话上 */
+initThree((n,m)=>{$('loading').textContent=`正在载入三维模型 ${n} / ${m}`;}).then(()=>{
+  $('loading').hidden=true;T=0;
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduce){big.hidden=false;render();}else setPlay(true);
+});
+})();
+</script>
